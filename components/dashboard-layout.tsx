@@ -109,6 +109,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <School className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">HSST Alumni</span>
             </Link>
+            <ThemeToggle />
           </div>
 
           <nav className="flex-1 space-y-1 px-2 py-4">
@@ -141,7 +142,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <p className="text-xs text-muted-foreground">{user?.email || "user@example.com"}</p>
                 </div>
               </div>
-              <ThemeToggle />
+             
             </div>
 
             <Button variant="outline" className="mt-4 w-full" onClick={handleLogout}>

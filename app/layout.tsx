@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "HSST Alumni Data Collection",
   description: "Alumni data collection system for Swami Rama Himalayan University",
+  icons: {
+    icon: "/HSST-2.png.webp",
+  },
 }
 
 export default function RootLayout({

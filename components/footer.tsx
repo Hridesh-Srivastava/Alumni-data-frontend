@@ -47,12 +47,12 @@ export function Footer() {
               Uttarakhand, India - 248016
               <br />
               <br />
-              <a href="mailto:alumni@srhu.edu.in" className="hover:text-white">
-                alumni@srhu.edu.in
+              <a href="mailto:sshset2013@gmail.com" className="hover:text-white">
+              sshset2013@gmail.com
               </a>
               <br />
-              <a href="tel:+911352471100" className="hover:text-white">
-                +91-135-2471100
+              <a href="tel:01352471266" className="hover:text-white">
+                01352471266
               </a>
             </address>
           </div>
