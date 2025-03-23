@@ -76,6 +76,25 @@ export function BackendStatus() {
         }
       }
 
+      // Check if the server is running on the expected port
+      try {
+        const port = API_URL.match(/:(\d+)/)?.[1] || "5000"
+        results += `\nChecking port ${port}:\n`
+
+        const portCheckResponse = await fetch(`http://localhost:${port}`, {
+          mode: "no-cors",
+          signal: AbortSignal.timeout(2000),
+        }).catch((e) => null)
+
+        if (portCheckResponse) {
+          results += `✅ Port ${port} is responding\n`
+        } else {
+          results += `❌ Port ${port} is not responding\n`
+        }
+      } catch (error) {
+        results += `❌ Port check failed: ${error instanceof Error ? error.message : "Unknown error"}\n`
+      }
+
       setDebugInfo(results)
     } catch (error) {
       setDebugInfo(`Diagnostics failed: ${error instanceof Error ? error.message : "Unknown error"}`)

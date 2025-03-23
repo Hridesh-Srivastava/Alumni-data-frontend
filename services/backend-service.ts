@@ -1,6 +1,9 @@
 import axios from "axios"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+// Try using 127.0.0.1 instead of localhost to avoid potential DNS issues
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api"
+
+console.log("Using API URL:", API_URL)
 
 // Create axios instance with proper configuration
 const api = axios.create({
@@ -9,7 +12,6 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
   timeout: 10000,
-  withCredentials: false, // Changed to false to avoid CORS preflight issues
 })
 
 // Add token to requests if available
@@ -26,18 +28,62 @@ api.interceptors.request.use(
   },
 )
 
-// Check if backend is running - simplified to avoid CORS issues
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    if (axios.isAxiosError(error)) {
+      // Handle 401 Unauthorized errors (token expired)
+      if (error.response?.status === 401) {
+        // Clear auth data
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+
+        // Redirect to login page if we're in a browser environment
+        if (typeof window !== "undefined") {
+          window.location.href = "/login"
+        }
+      }
+
+      // Log the error for debugging
+      console.error("API Error:", error.response?.data || error.message)
+    }
+    return Promise.reject(error)
+  },
+)
+
+// Check if backend is running - try multiple approaches
 export const checkBackendStatus = async (): Promise<boolean> => {
   try {
-    // Use axios instead of fetch for consistent error handling
-    const response = await axios.get(`${API_URL.replace("/api", "")}`, {
-      timeout: 5000,
-      headers: {
-        Accept: "text/plain",
-        "Content-Type": "application/json",
-      },
-    })
-    return response.status === 200
+    // Try multiple endpoints with both localhost and 127.0.0.1
+    const endpoints = [
+      `${API_URL.replace("/api", "")}/health`,
+      `${API_URL.replace("/api", "")}`,
+      API_URL.replace("localhost", "127.0.0.1").replace("/api", "/health"),
+      API_URL.replace("localhost", "127.0.0.1").replace("/api", ""),
+    ]
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying to connect to: ${endpoint}`)
+        const response = await axios.get(endpoint, {
+          timeout: 3000,
+        })
+        if (response.status === 200) {
+          console.log(`Successfully connected to: ${endpoint}`)
+          return true
+        }
+      } catch (err) {
+        console.log(`Failed to connect to: ${endpoint}`)
+        // Continue to next endpoint
+      }
+    }
+
+    // All attempts failed
+    console.warn("All backend connectivity checks failed")
+    return false
   } catch (error) {
     console.warn("Backend connectivity check failed:", error)
     return false

@@ -1,6 +1,8 @@
 import api, { checkBackendStatus } from "./backend-service"
 import axios from "axios"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
 // Helper function to get contacts from localStorage
 const getStoredContacts = () => {
   try {
@@ -13,7 +15,7 @@ const getStoredContacts = () => {
 }
 
 // Helper function to save contacts to localStorage
-const saveContactsToLocalStorage = (contacts: any[]) => {
+const saveContactsToLocalStorage = (contacts) => {
   try {
     localStorage.setItem("contactMessages", JSON.stringify(contacts))
   } catch (error) {
@@ -21,17 +23,15 @@ const saveContactsToLocalStorage = (contacts: any[]) => {
   }
 }
 
-export const sendContactMessage = async (contactData: any) => {
+export const sendContactMessage = async (contactData) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
-    console.log("Backend available:", isBackendAvailable)
 
     if (isBackendAvailable) {
       // Backend is available, send to API
       try {
         // Use direct axios call to avoid potential issues with the api instance
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
         const response = await axios.post(`${API_URL}/contact`, contactData, {
           headers: {
             "Content-Type": "application/json",
@@ -48,10 +48,7 @@ export const sendContactMessage = async (contactData: any) => {
         console.error("Error sending message to backend:", error)
         // Fall back to localStorage
         storeContactInLocalStorage(contactData)
-        return {
-          success: true,
-          message: "Contact message stored locally (backend error)",
-        }
+        throw error
       }
     } else {
       // Backend is not available, store in localStorage only
@@ -68,16 +65,12 @@ export const sendContactMessage = async (contactData: any) => {
     console.error("Error sending message:", error)
     // Still store in localStorage as fallback
     storeContactInLocalStorage(contactData)
-
-    return {
-      success: true,
-      message: "Contact message stored locally (error occurred)",
-    }
+    throw error
   }
 }
 
 // Helper function to store contact in localStorage
-function storeContactInLocalStorage(contactData: any, id?: string) {
+function storeContactInLocalStorage(contactData, id) {
   try {
     const storedMessages = getStoredContacts()
     const newMessage = {

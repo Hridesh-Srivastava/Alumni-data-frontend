@@ -81,7 +81,7 @@ export default function ContactPage() {
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-5xl">
               <div className="aspect-video overflow-hidden rounded-lg">
-                {/* Correct Google Maps embed with exact coordinates for Swami Rama Himalayan University */}
+                {/* Updated Google Maps embed with exact coordinates for Swami Rama Himalayan University */}
                 <iframe
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3445.8901776079136!2d78.18600757523961!3d30.268799681816385!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39092b9518e2fecd%3A0x87ba2f66716c7f99!2sSwami%20Rama%20Himalayan%20University!5e0!3m2!1sen!2sin!4v1716422400000!5m2!1sen!2sin"
                   width="100%"
