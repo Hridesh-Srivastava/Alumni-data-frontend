@@ -1,292 +1,297 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { DashboardHeader } from "@/components/dashboard-header"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
+// CSS classes for different font sizes
+const fontSizeClasses = {
+  small: "text-sm",
+  medium: "text-base",
+  large: "text-lg",
+}
+
 export default function SettingsPage() {
-  const { isAuthenticated, loading } = useAuth()
-  const router = useRouter()
-  const [isSaving, setIsSaving] = useState(false)
-  const [settings, setSettings] = useState({
-    notifications: {
-      email: true,
-      browser: false,
-    },
-    privacy: {
-      profileVisibility: "public",
-      dataSharing: true,
-    },
-    appearance: {
-      theme: "light",
-      compactMode: false,
-    },
-  })
+  const { user, updateSettings } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
 
+  // Notification settings
+  const [emailNotifications, setEmailNotifications] = useState(false)
+  const [browserNotifications, setBrowserNotifications] = useState(false)
+
+  // Privacy settings
+  const [showEmail, setShowEmail] = useState(false)
+  const [showProfile, setShowProfile] = useState(true)
+
+  // Appearance settings
+  const [theme, setTheme] = useState("system")
+  const [fontSize, setFontSize] = useState("medium")
+
+  // Load user settings when component mounts
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login")
+    if (user?.settings) {
+      // Notifications
+      if (user.settings.notifications) {
+        setEmailNotifications(user.settings.notifications.email || false)
+        setBrowserNotifications(user.settings.notifications.browser || false)
+      }
+
+      // Privacy
+      if (user.settings.privacy) {
+        setShowEmail(user.settings.privacy.showEmail || false)
+        setShowProfile(user.settings.privacy.showProfile || true)
+      }
+
+      // Appearance
+      if (user.settings.appearance) {
+        setTheme(user.settings.appearance.theme || "system")
+        setFontSize(user.settings.appearance.fontSize || "medium")
+      }
     }
-  }, [isAuthenticated, loading, router])
+  }, [user])
 
-  const handleSwitchChange = (section: string, setting: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [setting]: !prev[section as keyof typeof prev][setting as keyof (typeof prev)[keyof typeof prev]],
-      },
-    }))
-  }
+  // Apply font size to the document
+  useEffect(() => {
+    const applyFontSize = () => {
+      const root = document.documentElement
 
-  const handleRadioChange = (section: string, setting: string, value: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [setting]: value,
-      },
-    }))
-  }
+      // Remove all font size classes
+      Object.values(fontSizeClasses).forEach((cls) => {
+        root.classList.remove(cls)
+      })
 
-  const handleSave = async () => {
-    setIsSaving(true)
+      // Add the selected font size class
+      if (fontSizeClasses[fontSize as keyof typeof fontSizeClasses]) {
+        root.classList.add(fontSizeClasses[fontSize as keyof typeof fontSizeClasses])
+      }
+    }
+
+    applyFontSize()
+  }, [fontSize])
+
+  const handleSaveNotifications = async () => {
+    setIsLoading(true)
+
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success("Settings saved successfully")
+      await updateSettings({
+        notifications: {
+          email: emailNotifications,
+          browser: browserNotifications,
+        },
+      })
+
+      toast.success("Notification settings saved")
     } catch (error) {
-      toast.error("Failed to save settings")
+      toast.error("Failed to save notification settings")
     } finally {
-      setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      </div>
-    )
-  } 
+  const handleSavePrivacy = async () => {
+    setIsLoading(true)
+
+    try {
+      await updateSettings({
+        privacy: {
+          showEmail,
+          showProfile,
+        },
+      })
+
+      toast.success("Privacy settings saved")
+    } catch (error) {
+      toast.error("Failed to save privacy settings")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSaveAppearance = async () => {
+    setIsLoading(true)
+
+    try {
+      await updateSettings({
+        appearance: {
+          theme,
+          fontSize,
+        },
+      })
+
+      toast.success("Appearance settings saved")
+
+      // Apply theme immediately
+      if (theme !== "system") {
+        document.documentElement.classList.toggle("dark", theme === "dark")
+      } else {
+        // Use system preference
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+        document.documentElement.classList.toggle("dark", prefersDark)
+      }
+    } catch (error) {
+      toast.error("Failed to save appearance settings")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <DashboardLayout>
-      <DashboardHeader title="Settings" description="Manage your application settings" />
-      <Tabs defaultValue="notifications" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <p className="text-muted-foreground mb-6">Manage your application settings</p>
+
+      <Tabs defaultValue="notifications">
+        <TabsList className="mb-6">
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>Manage how you receive notifications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="email-notifications" className="flex flex-col space-y-1">
-                  <span>Email Notifications</span>
-                  <span className="text-sm font-normal text-muted-foreground">Receive notifications via email</span>
-                </Label>
-                <Switch
-                  id="email-notifications"
-                  checked={settings.notifications.email}
-                  onCheckedChange={() => handleSwitchChange("notifications", "email")}
-                />
+        <TabsContent value="notifications" className="space-y-6">
+          <div className="bg-card rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
+            <p className="text-muted-foreground mb-6">Manage how you receive notifications</p>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="email-notifications">Email Notifications</Label>
+                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                </div>
+                <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={setEmailNotifications} />
               </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="browser-notifications" className="flex flex-col space-y-1">
-                  <span>Browser Notifications</span>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    Receive notifications in your browser
-                  </span>
-                </Label>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="browser-notifications">Browser Notifications</Label>
+                  <p className="text-sm text-muted-foreground">Receive notifications in your browser</p>
+                </div>
                 <Switch
                   id="browser-notifications"
-                  checked={settings.notifications.browser}
-                  onCheckedChange={() => handleSwitchChange("notifications", "browser")}
+                  checked={browserNotifications}
+                  onCheckedChange={setBrowserNotifications}
                 />
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+            </div>
+
+            <Button onClick={handleSaveNotifications} className="mt-6" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </div>
         </TabsContent>
 
-        <TabsContent value="privacy">
-          <Card>
-            <CardHeader>
-              <CardTitle>Privacy Settings</CardTitle>
-              <CardDescription>Manage your privacy preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Profile Visibility</Label>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="public"
-                      name="profileVisibility"
-                      value="public"
-                      checked={settings.privacy.profileVisibility === "public"}
-                      onChange={() => handleRadioChange("privacy", "profileVisibility", "public")}
-                      className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="public" className="text-sm font-normal">
-                      Public - Anyone can view your profile
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="private"
-                      name="profileVisibility"
-                      value="private"
-                      checked={settings.privacy.profileVisibility === "private"}
-                      onChange={() => handleRadioChange("privacy", "profileVisibility", "private")}
-                      className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="private" className="text-sm font-normal">
-                      Private - Only you can view your profile
-                    </Label>
-                  </div>
+        <TabsContent value="privacy" className="space-y-6">
+          <div className="bg-card rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Privacy Settings</h2>
+            <p className="text-muted-foreground mb-6">Manage your privacy preferences</p>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="show-email">Show Email</Label>
+                  <p className="text-sm text-muted-foreground">Allow others to see your email address</p>
                 </div>
+                <Switch id="show-email" checked={showEmail} onCheckedChange={setShowEmail} />
               </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="data-sharing" className="flex flex-col space-y-1">
-                  <span>Data Sharing</span>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    Allow sharing of anonymized data for system improvements
-                  </span>
-                </Label>
-                <Switch
-                  id="data-sharing"
-                  checked={settings.privacy.dataSharing}
-                  onCheckedChange={() => handleSwitchChange("privacy", "dataSharing")}
-                />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="show-profile">Show Profile</Label>
+                  <p className="text-sm text-muted-foreground">Make your profile visible to others</p>
+                </div>
+                <Switch id="show-profile" checked={showProfile} onCheckedChange={setShowProfile} />
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+            </div>
+
+            <Button onClick={handleSavePrivacy} className="mt-6" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </div>
         </TabsContent>
 
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>Customize how the application looks</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+        <TabsContent value="appearance" className="space-y-6">
+          <div className="bg-card rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Appearance Settings</h2>
+            <p className="text-muted-foreground mb-6">Customize the look and feel of the application</p>
+
+            <div className="space-y-6">
+              <div className="space-y-3">
                 <Label>Theme</Label>
-                <div className="flex flex-col space-y-2">
+                <RadioGroup value={theme} onValueChange={setTheme} className="flex flex-col space-y-2">
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="light"
-                      name="theme"
-                      value="light"
-                      checked={settings.appearance.theme === "light"}
-                      onChange={() => handleRadioChange("appearance", "theme", "light")}
-                      className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="light" className="text-sm font-normal">
-                      Light
-                    </Label>
+                    <RadioGroupItem value="light" id="theme-light" />
+                    <Label htmlFor="theme-light">Light</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="dark"
-                      name="theme"
-                      value="dark"
-                      checked={settings.appearance.theme === "dark"}
-                      onChange={() => handleRadioChange("appearance", "theme", "dark")}
-                      className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="dark" className="text-sm font-normal">
-                      Dark
-                    </Label>
+                    <RadioGroupItem value="dark" id="theme-dark" />
+                    <Label htmlFor="theme-dark">Dark</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="system"
-                      name="theme"
-                      value="system"
-                      checked={settings.appearance.theme === "system"}
-                      onChange={() => handleRadioChange("appearance", "theme", "system")}
-                      className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="system" className="text-sm font-normal">
-                      System
-                    </Label>
+                    <RadioGroupItem value="system" id="theme-system" />
+                    <Label htmlFor="theme-system">System</Label>
                   </div>
-                </div>
+                </RadioGroup>
               </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="compact-mode" className="flex flex-col space-y-1">
-                  <span>Compact Mode</span>
-                  <span className="text-sm font-normal text-muted-foreground">Use a more compact layout</span>
-                </Label>
-                <Switch
-                  id="compact-mode"
-                  checked={settings.appearance.compactMode}
-                  onCheckedChange={() => handleSwitchChange("appearance", "compactMode")}
-                />
+
+              <div className="space-y-3">
+                <Label>Font Size</Label>
+                <RadioGroup value={fontSize} onValueChange={setFontSize} className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="small" id="font-small" />
+                    <Label htmlFor="font-small" className="text-sm">
+                      Small
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="medium" id="font-medium" />
+                    <Label htmlFor="font-medium" className="text-base">
+                      Medium
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="large" id="font-large" />
+                    <Label htmlFor="font-large" className="text-lg">
+                      Large
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+            </div>
+
+            <Button onClick={handleSaveAppearance} className="mt-6" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
-    </DashboardLayout>
+    </div>
   )
 }
 

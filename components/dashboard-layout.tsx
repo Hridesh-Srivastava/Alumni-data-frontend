@@ -4,24 +4,11 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
+import { LayoutDashboard, Users, BarChart, School, User, Settings, LogOut, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  LayoutDashboard,
-  Users,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  ChevronDown,
-  UserCircle,
-  GraduationCap,
-  BarChart3,
-} from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useMobile } from "@/hooks/use-mobile"
-import { toast } from "sonner"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 interface DashboardLayoutProps {
@@ -29,136 +16,151 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const pathname = usePathname()
   const { user, logout } = useAuth()
-  const isMobile = useMobile()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile)
+  const router = useRouter()
+  const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
+  // Close mobile menu when path changes
   useEffect(() => {
-    setIsSidebarOpen(!isMobile)
-  }, [isMobile])
+    setIsMobileMenuOpen(false)
+  }, [pathname])
 
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Alumni Records", href: "/dashboard/alumni", icon: Users },
-    { name: "Statistics", href: "/dashboard/statistics", icon: BarChart3 },
-    { name: "Academic Units", href: "/dashboard/academic-units", icon: GraduationCap },
-    { name: "Profile", href: "/dashboard/profile", icon: UserCircle },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  ]
+  // Ensure sidebar is visible on larger screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileMenuOpen(false)
+      }
+    }
 
-  const isActive = (path: string) => pathname === path || pathname?.startsWith(`${path}/`)
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
+  // Handle logout with proper navigation
   const handleLogout = () => {
-    logout()
-    toast.success("Logged out successfully")
+    try {
+      logout()
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Force navigation to home page even if logout fails
+      window.location.href = "/"
+    }
   }
 
+  const navItems = [
+    {
+      title: "Dashboard",
+      href: "/dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: "Alumni Records",
+      href: "/dashboard/alumni",
+      icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Statistics",
+      href: "/dashboard/statistics",
+      icon: <BarChart className="h-5 w-5" />,
+    },
+    {
+      title: "Academic Units",
+      href: "/dashboard/academic-units",
+      icon: <School className="h-5 w-5" />,
+    },
+    {
+      title: "Profile",
+      href: "/dashboard/profile",
+      icon: <User className="h-5 w-5" />,
+    },
+    {
+      title: "Settings",
+      href: "/dashboard/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ]
+
   return (
-    <div className="flex h-screen overflow-hidden bg-muted">
+    <div className="flex min-h-screen bg-background">
+      {/* Mobile menu button */}
+      <div className="fixed top-4 left-4 z-50 lg:hidden">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+        >
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
       {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-background shadow-lg transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-card shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center justify-between border-b px-4">
-            <Link href="/dashboard" className="flex items-center">
-              <GraduationCap className="h-6 w-6 text-primary mr-2" />
-              <span className="text-xl font-bold text-primary">HSST Alumni</span>
+          <div className="flex items-center justify-between px-4 py-6">
+            <Link href="/dashboard" className="flex items-center space-x-2">
+              <School className="h-6 w-6 text-primary" />
+              <span className="text-xl font-bold">HSST Alumni</span>
             </Link>
-            {isMobile && (
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            )}
           </div>
-          <div className="flex-1 overflow-y-auto py-4">
-            <nav className="space-y-1 px-2">
-              {navigation.map((item) => (
+
+          <nav className="flex-1 space-y-1 px-2 py-4">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+
+              return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   href={item.href}
-                  className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium ${
-                    isActive(item.href) ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+                  className={`flex items-center space-x-2 rounded-md px-3 py-2 transition-colors ${
+                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                   }`}
                 >
-                  <item.icon
-                    className={`mr-3 h-5 w-5 ${
-                      isActive(item.href)
-                        ? "text-primary-foreground"
-                        : "text-muted-foreground group-hover:text-foreground"
-                    }`}
-                  />
-                  {item.name}
+                  {item.icon}
+                  <span>{item.title}</span>
                 </Link>
-              ))}
-            </nav>
-          </div>
+              )
+            })}
+          </nav>
+
           <div className="border-t p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-primary text-center text-sm font-medium text-primary-foreground leading-8">
-                  {user?.name?.charAt(0) || "A"}
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary font-medium">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-foreground">{user?.name || "Admin"}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email || "admin@example.com"}</p>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">{user?.name || "User"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email || "user@example.com"}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-                <LogOut className="h-5 w-5 text-muted-foreground" />
-              </Button>
+              <ThemeToggle />
             </div>
+
+            <Button variant="outline" className="mt-4 w-full" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="border-b bg-background shadow-sm">
-          <div className="flex h-16 items-center justify-between px-4">
-            <div className="flex items-center">
-              {isMobile && (
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
-                >
-                  <Menu className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              <ThemeToggle />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                    <div className="h-8 w-8 rounded-full bg-primary text-center text-sm font-medium text-primary-foreground leading-8">
-                      {user?.name?.charAt(0) || "A"}
-                    </div>
-                    <span className="ml-2 hidden md:inline-block">{user?.name || "Admin"}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </header>
-        <main className="flex-1 overflow-y-auto bg-muted p-4 md:p-6">{children}</main>
+      <div className="flex-1 lg:ml-64">
+        <main className="min-h-screen p-4 lg:p-6">{children}</main>
       </div>
+
+      {/* Overlay for mobile menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
     </div>
   )
 }

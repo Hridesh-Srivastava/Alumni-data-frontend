@@ -2,184 +2,211 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, loading } = useAuth()
-  const router = useRouter()
+  const { user, updateProfile } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: user?.name || "",
+    email: user?.email || "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   })
-  const [isUpdating, setIsUpdating] = useState(false)
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login")
-      return
-    }
-
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.name || "",
-        email: user.email || "",
-      }))
-    }
-  }, [isAuthenticated, loading, router, user])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePersonalInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsUpdating(true)
+    setIsLoading(true)
 
     try {
-      // Validate passwords
-      if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-        throw new Error("New passwords do not match")
-      }
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await updateProfile({
+        name: formData.name,
+        email: formData.email,
+      })
 
       toast.success("Profile updated successfully")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update profile")
+      toast.error("Failed to update profile")
     } finally {
-      setIsUpdating(false)
+      setIsLoading(false)
     }
   }
 
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      </div>
-    )
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Basic validations
+    if (formData.newPassword !== formData.confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+
+    if (formData.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters")
+      return
+    }
+
+    if (!formData.currentPassword) {
+      toast.error("Current password is required")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      await updateProfile({
+        password: formData.newPassword,
+        currentPassword: formData.currentPassword,
+      })
+
+      toast.success("Password changed successfully")
+
+      // Reset password fields
+      setFormData((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }))
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(`Failed to change password: ${error.message}`)
+      } else {
+        toast.error("Failed to change password")
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword)
   }
 
   return (
-    <DashboardLayout>
-      <DashboardHeader title="Profile" description="Manage your account settings" />
-      <div className="grid gap-6">
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">Profile</h1>
+
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <form onSubmit={handleSubmit}>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>Update your personal details</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePersonalInfoSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Your full name"
-                />
+                <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Your email address"
-                />
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? (
+
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
+                    Saving...
                   </>
                 ) : (
                   "Save Changes"
                 )}
               </Button>
-            </CardFooter>
-          </form>
+            </form>
+          </CardContent>
         </Card>
 
         <Card>
-          <form onSubmit={handleSubmit}>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your password</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
-                <Input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type="password"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  placeholder="Enter your current password"
-                />
+                <div className="relative">
+                  <Input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0"
+                    onClick={toggleShowPassword}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  id="newPassword"
-                  name="newPassword"
-                  type="password"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  placeholder="Enter your new password"
-                />
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your new password"
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? (
+
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
+                    Changing...
                   </>
                 ) : (
                   "Change Password"
                 )}
               </Button>
-            </CardFooter>
-          </form>
+            </form>
+          </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </div>
   )
 }
 

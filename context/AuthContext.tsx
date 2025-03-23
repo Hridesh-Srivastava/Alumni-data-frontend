@@ -2,13 +2,35 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { toast } from "sonner"
-import { login as loginApi, register as registerApi } from "@/services/auth-service"
+import {
+  login as loginApi,
+  register as registerApi,
+  logout as logoutApi,
+  updateUserProfile,
+  updateUserSettings,
+} from "@/services/auth-service"
+import { checkBackendStatus } from "@/services/utils-service"
 
 interface User {
   _id: string
   name: string
   email: string
   role: string
+  token?: string
+  settings?: {
+    notifications?: {
+      email?: boolean
+      browser?: boolean
+    }
+    privacy?: {
+      showEmail?: boolean
+      showProfile?: boolean
+    }
+    appearance?: {
+      theme?: string
+      fontSize?: string
+    }
+  }
 }
 
 interface AuthContextType {
@@ -19,6 +41,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
+  updateProfile: (userData: any) => Promise<void>
+  updateSettings: (settings: any) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +53,8 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   register: async () => {},
   logout: () => {},
+  updateProfile: async () => {},
+  updateSettings: async () => {},
 })
 
 export const useAuth = () => useContext(AuthContext)
@@ -57,35 +83,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await loginApi(email, password)
+      // Check if backend is available before attempting login
+      const backendAvailable = await checkBackendStatus()
 
+      const response = await loginApi(email, password)
       setUser(response)
       setToken(response.token)
 
       localStorage.setItem("user", JSON.stringify(response))
       localStorage.setItem("token", response.token)
 
+      toast.success(`${backendAvailable ? "" : "[Development Mode] "}Logged in successfully`)
       return response
     } catch (error) {
       console.error("Login error:", error)
 
-      // For development, allow login even if API fails
-      if (process.env.NODE_ENV === "development") {
-        const mockUser = {
-          _id: "1",
-          name: email.split("@")[0],
-          email: email,
-          role: "admin",
-          token: `mock-jwt-token-${Math.random().toString(36).substring(2, 9)}`,
-        }
-
-        setUser(mockUser)
-        setToken(mockUser.token)
-
-        localStorage.setItem("user", JSON.stringify(mockUser))
-        localStorage.setItem("token", mockUser.token)
-
-        return mockUser
+      if (error instanceof Error) {
+        toast.error("Login failed", {
+          description: error.message,
+        })
+      } else {
+        toast.error("Login failed", {
+          description: "An unexpected error occurred",
+        })
       }
 
       throw error
@@ -102,27 +122,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.setItem("user", JSON.stringify(response))
       localStorage.setItem("token", response.token)
 
+      toast.success("Registration successful")
       return response
     } catch (error) {
       console.error("Register error:", error)
 
-      // For development, allow registration even if API fails
-      if (process.env.NODE_ENV === "development") {
-        const mockUser = {
-          _id: Math.random().toString(36).substring(2, 9),
-          name: name,
-          email: email,
-          role: "admin",
-          token: `mock-jwt-token-${Math.random().toString(36).substring(2, 9)}`,
-        }
-
-        setUser(mockUser)
-        setToken(mockUser.token)
-
-        localStorage.setItem("user", JSON.stringify(mockUser))
-        localStorage.setItem("token", mockUser.token)
-
-        return mockUser
+      if (error instanceof Error) {
+        toast.error("Registration failed", {
+          description: error.message,
+        })
+      } else {
+        toast.error("Registration failed", {
+          description: "An unexpected error occurred",
+        })
       }
 
       throw error
@@ -130,11 +142,101 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const logout = () => {
-    setUser(null)
-    setToken(null)
-    localStorage.removeItem("user")
-    localStorage.removeItem("token")
-    toast.success("Logged out successfully")
+    try {
+      // Call logout API (this is now handled in auth-service.ts)
+      logoutApi()
+
+      // Clear state
+      setUser(null)
+      setToken(null)
+
+      toast.success("Logged out successfully")
+
+      // Force page reload to clear any in-memory state
+      window.location.href = "/"
+    } catch (error) {
+      console.error("Logout error:", error)
+
+      // Even if there's an error, we should still clear the local state
+      setUser(null)
+      setToken(null)
+
+      // Force page reload to clear any in-memory state
+      window.location.href = "/"
+    }
+  }
+
+  const updateProfile = async (userData: any) => {
+    try {
+      // If updating password, send both new password and current password
+      if (userData.password && !userData.currentPassword) {
+        throw new Error("Current password is required to change password")
+      }
+
+      const response = await updateUserProfile(userData)
+      setUser(response)
+
+      // Update stored user data
+      localStorage.setItem("user", JSON.stringify(response))
+
+      // Update token if a new one is returned
+      if (response.token) {
+        setToken(response.token)
+        localStorage.setItem("token", response.token)
+      }
+
+      const backendAvailable = await checkBackendStatus()
+      toast.success(`${backendAvailable ? "" : "[Development Mode] "}Profile updated successfully`)
+      return response
+    } catch (error) {
+      console.error("Update profile error:", error)
+
+      if (error instanceof Error) {
+        toast.error("Failed to update profile", {
+          description: error.message,
+        })
+      } else {
+        toast.error("Failed to update profile", {
+          description: "An unexpected error occurred",
+        })
+      }
+
+      throw error
+    }
+  }
+
+  const updateSettings = async (settings: any) => {
+    try {
+      const response = await updateUserSettings(settings)
+
+      // Update user with new settings
+      if (user) {
+        const updatedUser = {
+          ...user,
+          settings: response.settings,
+        }
+
+        setUser(updatedUser)
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+      }
+
+      toast.success("Settings updated successfully")
+      return response
+    } catch (error) {
+      console.error("Update settings error:", error)
+
+      if (error instanceof Error) {
+        toast.error("Failed to update settings", {
+          description: error.message,
+        })
+      } else {
+        toast.error("Failed to update settings", {
+          description: "An unexpected error occurred",
+        })
+      }
+
+      throw error
+    }
   }
 
   return (
@@ -147,6 +249,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         login,
         register,
         logout,
+        updateProfile,
+        updateSettings,
       }}
     >
       {children}

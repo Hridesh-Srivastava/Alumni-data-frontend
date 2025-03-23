@@ -1,39 +1,20 @@
-"use client"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/AuthContext"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { RecentAlumni } from "@/components/recent-alumni"
+import { BackendStatus } from "@/components/backend-status"
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, loading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login")
-    }
-  }, [isAuthenticated, loading, router])
-
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      </div>
-    )
-  }
-
   return (
-    <DashboardLayout>
-      <DashboardHeader title="Dashboard" description="Welcome to the HSST Alumni Data Collection System" />
-      <div className="grid gap-6">
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <p className="text-muted-foreground mb-6">Welcome to the HSST Alumni Data Collection System</p>
+
+      <BackendStatus />
+
+      <div className="space-y-6">
         <DashboardStats />
         <RecentAlumni />
       </div>
-    </DashboardLayout>
+    </div>
   )
 }
 

@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
-import axios from "axios"
+import { Loader2, CheckCircle } from "lucide-react"
+import { sendContactMessage } from "@/services/contact-service"
 
 export function ContactForm() {
   const [formData, setFormData] = useState({
@@ -19,6 +19,7 @@ export function ContactForm() {
     message: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -28,14 +29,13 @@ export function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setIsSuccess(false)
 
     try {
-      // Get the API URL from environment variables
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      // Send the contact message using the service
+      await sendContactMessage(formData)
 
-      // Make the API call
-      await axios.post(`${API_URL}/contact`, formData)
-
+      setIsSuccess(true)
       toast.success("Message sent", {
         description: "Thank you for contacting us. We will get back to you soon.",
       })
@@ -47,26 +47,17 @@ export function ContactForm() {
         subject: "",
         message: "",
       })
+
+      // Show success state for 3 seconds
+      setTimeout(() => {
+        setIsSuccess(false)
+      }, 3000)
     } catch (error) {
       console.error("Error sending message:", error)
-
-      // For development, show success even if API fails
-      if (process.env.NODE_ENV === "development") {
-        toast.success("Message sent (Development Mode)", {
-          description: "In development mode, this message is shown regardless of API connection.",
-        })
-
-        setFormData({
-          name: "",
-          email: "",
-          subject: "",
-          message: "",
-        })
-      } else {
-        toast.error("Failed to send message", {
-          description: "Please try again later or contact us directly via email.",
-        })
-      }
+      toast.error("Failed to send message", {
+        description:
+          error instanceof Error ? error.message : "Please try again later or contact us directly via email.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -113,16 +104,28 @@ export function ContactForm() {
           required
         />
       </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full" disabled={isLoading || isSuccess}>
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Sending...
           </>
+        ) : isSuccess ? (
+          <>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Message Sent
+          </>
         ) : (
           "Send Message"
         )}
       </Button>
+
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-4 text-xs text-muted-foreground">
+          <p>Development Mode: Contact messages are stored in localStorage.</p>
+          <p>Check browser console for details.</p>
+        </div>
+      )}
     </form>
   )
 }
