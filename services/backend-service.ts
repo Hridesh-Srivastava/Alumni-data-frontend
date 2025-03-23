@@ -9,7 +9,7 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
   timeout: 10000,
-  withCredentials: true, // Include credentials for CORS
+  withCredentials: false, // Changed to false to avoid CORS preflight issues
 })
 
 // Add token to requests if available
@@ -26,19 +26,18 @@ api.interceptors.request.use(
   },
 )
 
-// Check if backend is running
+// Check if backend is running - simplified to avoid CORS issues
 export const checkBackendStatus = async (): Promise<boolean> => {
   try {
-    // Use a simple HEAD request to check if the server is running
-    const response = await fetch(`${API_URL}`, {
-      method: "HEAD",
+    // Use axios instead of fetch for consistent error handling
+    const response = await axios.get(`${API_URL.replace("/api", "")}`, {
+      timeout: 5000,
       headers: {
+        Accept: "text/plain",
         "Content-Type": "application/json",
       },
-      credentials: "include", // Include credentials for CORS
-      signal: AbortSignal.timeout(5000), // Increased timeout
     })
-    return response.ok
+    return response.status === 200
   } catch (error) {
     console.warn("Backend connectivity check failed:", error)
     return false

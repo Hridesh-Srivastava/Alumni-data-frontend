@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { AlertCircle, CheckCircle2, Loader2, Terminal } from "lucide-react"
 import { checkBackendStatus } from "@/services/backend-service"
+import axios from "axios"
 
 export function BackendStatus() {
   const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading")
   const [lastChecked, setLastChecked] = useState<Date>(new Date())
   const [showTroubleshooting, setShowTroubleshooting] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
   const checkConnection = async () => {
@@ -15,9 +17,27 @@ export function BackendStatus() {
       const isConnected = await checkBackendStatus()
       setStatus(isConnected ? "connected" : "disconnected")
       setLastChecked(new Date())
+
+      // If disconnected, try to get more debug info
+      if (!isConnected) {
+        try {
+          // Try a direct fetch to see if we can get more error details
+          await fetch(`${API_URL.replace("/api", "")}/health`, {
+            method: "GET",
+            mode: "no-cors", // This allows us to at least see if the server responds
+          })
+        } catch (error) {
+          if (error instanceof Error) {
+            setDebugInfo(error.message)
+          }
+        }
+      }
     } catch (error) {
       setStatus("disconnected")
       setLastChecked(new Date())
+      if (error instanceof Error) {
+        setDebugInfo(error.message)
+      }
     }
   }
 
@@ -28,6 +48,39 @@ export function BackendStatus() {
     const interval = setInterval(checkConnection, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  const runNetworkDiagnostics = async () => {
+    setDebugInfo("Running diagnostics...")
+
+    try {
+      // Try different endpoints to see what works
+      const endpoints = [
+        { url: API_URL.replace("/api", ""), name: "Root endpoint" },
+        { url: `${API_URL.replace("/api", "")}/health`, name: "Health endpoint" },
+        { url: `${API_URL}/auth/login`, name: "Login endpoint" },
+      ]
+
+      let results = ""
+
+      for (const endpoint of endpoints) {
+        try {
+          const start = performance.now()
+          await axios.get(endpoint.url, {
+            timeout: 3000,
+            validateStatus: () => true, // Accept any status code
+          })
+          const end = performance.now()
+          results += `✅ ${endpoint.name} (${Math.round(end - start)}ms)\n`
+        } catch (error) {
+          results += `❌ ${endpoint.name}: ${error instanceof Error ? error.message : "Unknown error"}\n`
+        }
+      }
+
+      setDebugInfo(results)
+    } catch (error) {
+      setDebugInfo(`Diagnostics failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+    }
+  }
 
   if (status === "loading") {
     return (
@@ -68,6 +121,12 @@ export function BackendStatus() {
                 >
                   {showTroubleshooting ? "Hide Troubleshooting" : "Show Troubleshooting"}
                 </button>
+                <button
+                  onClick={runNetworkDiagnostics}
+                  className="px-2 py-1 text-xs bg-destructive/20 hover:bg-destructive/30 rounded flex items-center"
+                >
+                  <Terminal className="h-3 w-3 mr-1" /> Run Diagnostics
+                </button>
               </div>
 
               {showTroubleshooting && (
@@ -79,7 +138,18 @@ export function BackendStatus() {
                     <li>Verify CORS settings in backend server.js allow requests from {window.location.origin}</li>
                     <li>Try restarting the backend server</li>
                     <li>Check if NEXT_PUBLIC_API_URL is set correctly to {API_URL}</li>
+                    <li>Check if your firewall is blocking connections to port 5000</li>
+                    <li>
+                      Try running the backend with <code>npm start</code> and check for any errors
+                    </li>
                   </ol>
+                </div>
+              )}
+
+              {debugInfo && (
+                <div className="mt-3 p-3 border border-destructive/30 rounded text-xs bg-black/80 text-white font-mono whitespace-pre-wrap">
+                  <h6 className="font-medium mb-1">Diagnostic Information:</h6>
+                  {debugInfo}
                 </div>
               )}
             </div>

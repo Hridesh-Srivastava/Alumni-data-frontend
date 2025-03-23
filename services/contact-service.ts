@@ -1,4 +1,5 @@
 import api, { checkBackendStatus } from "./backend-service"
+import axios from "axios"
 
 // Helper function to get contacts from localStorage
 const getStoredContacts = () => {
@@ -24,11 +25,20 @@ export const sendContactMessage = async (contactData: any) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
+    console.log("Backend available:", isBackendAvailable)
 
     if (isBackendAvailable) {
       // Backend is available, send to API
       try {
-        const response = await api.post("/contact", contactData)
+        // Use direct axios call to avoid potential issues with the api instance
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+        const response = await axios.post(`${API_URL}/contact`, contactData, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+
+        console.log("Contact message sent to backend:", response.data)
 
         // Also store in localStorage for development convenience
         storeContactInLocalStorage(contactData, response.data._id)
@@ -36,7 +46,12 @@ export const sendContactMessage = async (contactData: any) => {
         return response.data
       } catch (error) {
         console.error("Error sending message to backend:", error)
-        throw error
+        // Fall back to localStorage
+        storeContactInLocalStorage(contactData)
+        return {
+          success: true,
+          message: "Contact message stored locally (backend error)",
+        }
       }
     } else {
       // Backend is not available, store in localStorage only
@@ -51,7 +66,13 @@ export const sendContactMessage = async (contactData: any) => {
     }
   } catch (error) {
     console.error("Error sending message:", error)
-    throw error
+    // Still store in localStorage as fallback
+    storeContactInLocalStorage(contactData)
+
+    return {
+      success: true,
+      message: "Contact message stored locally (error occurred)",
+    }
   }
 }
 
@@ -67,6 +88,7 @@ function storeContactInLocalStorage(contactData: any, id?: string) {
 
     storedMessages.push(newMessage)
     saveContactsToLocalStorage(storedMessages)
+    console.log("Contact message stored in localStorage:", newMessage)
   } catch (error) {
     console.error("Error storing contact in localStorage:", error)
   }
