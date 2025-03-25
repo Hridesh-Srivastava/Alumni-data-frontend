@@ -119,7 +119,7 @@ export default function NewAlumniPage() {
   }, [])
 
   // Handle form submission
-  const handleSubmit = async (values: AlumniFormValues) => {
+  const onSubmit = async (values: AlumniFormValues) => {
     setIsLoading(true)
     setError("")
 
@@ -189,7 +189,7 @@ export default function NewAlumniPage() {
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic-information">

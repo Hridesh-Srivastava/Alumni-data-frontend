@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Eye, EyeOff, Lock, AlertCircle, CheckCircle } from "lucide-react"
@@ -19,7 +19,14 @@ export default function ResetPasswordPage({ params }) {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const token = params.token
+  const [token, setToken] = useState("")
+
+  // Use useEffect to handle the params.token
+  useEffect(() => {
+    if (params && params.token) {
+      setToken(params.token)
+    }
+  }, [params])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -127,7 +134,7 @@ export default function ResetPasswordPage({ params }) {
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full" disabled={isSubmitting || !token}>
                   {isSubmitting ? "Resetting..." : "Reset Password"}
                 </Button>
               </form>

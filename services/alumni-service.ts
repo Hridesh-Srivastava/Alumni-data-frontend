@@ -185,11 +185,15 @@ export const createAlumni = async (alumniData) => {
         }
 
         // Use direct axios call to avoid potential issues with the api instance
-        const response = await axios.post(`${API_URL}/alumni`, alumniData, {
+        const response = await axios({
+          method: "post",
+          url: `${API_URL}/alumni`,
+          data: alumniData,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          timeout: 15000, // Increase timeout to 15 seconds
         })
 
         console.log("Alumni created successfully:", response.data)
@@ -416,9 +420,19 @@ export const getStats = async () => {
       // Backend is available, use real API
       console.log("Fetching stats from backend API")
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const token = localStorage.getItem("token")
 
-      // Use direct axios call to avoid potential issues
-      const response = await axios.get(`${API_URL}/alumni/stats`)
+      // Use direct axios call with proper authorization
+      const response = await axios({
+        method: "get",
+        url: `${API_URL}/alumni/stats`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+        timeout: 10000,
+      })
+
       console.log("Stats received from backend:", response.data)
       return response.data
     } else {

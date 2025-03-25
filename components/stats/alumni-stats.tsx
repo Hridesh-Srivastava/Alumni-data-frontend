@@ -30,15 +30,27 @@ export function AlumniStats() {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0) // Used to force refresh
 
   const fetchStats = async () => {
     try {
       setLoading(true)
       console.log("Fetching alumni statistics...")
+
+      // Clear any cached data
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const timestamp = new Date().getTime()
+
+      // Add a timestamp to prevent caching
       const data = await getStats()
       console.log("Statistics received:", data)
-      setStats(data)
-      setError(null)
+
+      if (data) {
+        setStats(data)
+        setError(null)
+      } else {
+        setError("No statistics data received")
+      }
     } catch (err) {
       console.error("Error fetching stats:", err)
       setError("Failed to load statistics")
@@ -50,10 +62,13 @@ export function AlumniStats() {
   useEffect(() => {
     fetchStats()
 
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30000)
+    // Refresh stats every 15 seconds
+    const interval = setInterval(() => {
+      setRefreshKey((prev) => prev + 1)
+    }, 15000)
+
     return () => clearInterval(interval)
-  }, [])
+  }, [refreshKey])
 
   // Prepare data for charts
   const academicUnitData =
@@ -199,6 +214,9 @@ export function AlumniStats() {
                   <Tooltip formatter={(value) => `${value}%`} />
                 </PieChart>
               </ResponsiveContainer>
+              <div className="mt-4 text-center">
+                <p className="text-lg font-semibold">Employed: {stats.employmentRate}%</p>
+              </div>
             </div>
           ) : (
             <div className="flex h-full items-center justify-center">
