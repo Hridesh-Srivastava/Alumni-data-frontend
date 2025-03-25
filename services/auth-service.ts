@@ -63,10 +63,21 @@ export const login = async (email, password) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       try {
-        const response = await api.post("/auth/login", {
-          email,
-          password,
-        })
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+        console.log("Attempting login with API URL:", API_URL)
+
+        const response = await axios.post(
+          `${API_URL}/auth/login`,
+          {
+            email,
+            password,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        )
 
         // Store user and token in localStorage
         localStorage.setItem("user", JSON.stringify(response.data))
@@ -76,6 +87,7 @@ export const login = async (email, password) => {
       } catch (error) {
         // Handle specific error cases
         if (axios.isAxiosError(error) && error.response) {
+          console.error("Login error response:", error.response.data)
           throw new Error(error.response.data.message || "Invalid email or password")
         }
         throw error
@@ -158,11 +170,24 @@ export const register = async (name, email, password) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       try {
-        const response = await api.post("/auth/register", {
-          name,
-          email,
-          password,
-        })
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+        console.log("Attempting registration with API URL:", API_URL)
+
+        const response = await axios.post(
+          `${API_URL}/auth/register`,
+          {
+            name,
+            email,
+            password,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        )
+
+        console.log("Registration successful:", response.data)
 
         // Store user and token in localStorage
         localStorage.setItem("user", JSON.stringify(response.data))
@@ -470,7 +495,18 @@ export const requestPasswordReset = async (email) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       console.log("Sending password reset request to backend for:", email)
-      const response = await api.post("/auth/forgot-password", { email })
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+
+      const response = await axios.post(
+        `${API_URL}/auth/forgot-password`,
+        { email },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      )
+
       return response.data
     } else {
       // Backend is not available, simulate successful request
@@ -522,7 +558,18 @@ export const resetPassword = async (token, newPassword) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       console.log("Sending password reset to backend with token:", token)
-      const response = await api.post("/auth/reset-password", { token, newPassword })
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+
+      const response = await axios.post(
+        `${API_URL}/auth/reset-password`,
+        { token, newPassword },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      )
+
       return response.data
     } else {
       // Backend is not available, simulate successful reset
