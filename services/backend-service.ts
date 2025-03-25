@@ -37,6 +37,7 @@ api.interceptors.response.use(
     if (axios.isAxiosError(error)) {
       // Handle 401 Unauthorized errors (token expired)
       if (error.response?.status === 401) {
+        console.log("Unauthorized access detected, redirecting to login")
         // Clear auth data
         localStorage.removeItem("token")
         localStorage.removeItem("user")
@@ -59,10 +60,10 @@ export const checkBackendStatus = async (): Promise<boolean> => {
   try {
     // Try multiple endpoints with both localhost and 127.0.0.1
     const endpoints = [
+      `${API_URL}/auth/health`,
       `${API_URL.replace("/api", "")}/health`,
-      `${API_URL.replace("/api", "")}`,
       API_URL.replace("localhost", "127.0.0.1").replace("/api", "/health"),
-      API_URL.replace("localhost", "127.0.0.1").replace("/api", ""),
+      API_URL.replace("localhost", "127.0.0.1"),
     ]
 
     for (const endpoint of endpoints) {

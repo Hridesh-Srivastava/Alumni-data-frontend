@@ -157,17 +157,25 @@ export const register = async (name, email, password) => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.post("/auth/register", {
-        name,
-        email,
-        password,
-      })
+      try {
+        const response = await api.post("/auth/register", {
+          name,
+          email,
+          password,
+        })
 
-      // Store user and token in localStorage
-      localStorage.setItem("user", JSON.stringify(response.data))
-      localStorage.setItem("token", response.data.token)
+        // Store user and token in localStorage
+        localStorage.setItem("user", JSON.stringify(response.data))
+        localStorage.setItem("token", response.data.token)
 
-      return response.data
+        return response.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          console.error("Registration error details:", error.response.data)
+          throw new Error(error.response.data.message || "Registration failed")
+        }
+        throw error
+      }
     } else {
       // Backend is not available, use mock data
       console.log("Backend unavailable: Using mock registration")
@@ -513,6 +521,7 @@ export const resetPassword = async (token, newPassword) => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
+      console.log("Sending password reset to backend with token:", token)
       const response = await api.post("/auth/reset-password", { token, newPassword })
       return response.data
     } else {

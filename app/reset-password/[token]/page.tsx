@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -13,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { resetPassword } from "@/services/auth-service"
 
-export default function ResetPasswordPage({ params }: { params: { token: string } }) {
+export default function ResetPasswordPage({ params }) {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -21,9 +19,9 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { token } = params
+  const token = params.token
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!password) {
@@ -45,6 +43,7 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
     setError("")
 
     try {
+      console.log("Resetting password with token:", token)
       await resetPassword(token, password)
       setIsSubmitted(true)
     } catch (error) {
