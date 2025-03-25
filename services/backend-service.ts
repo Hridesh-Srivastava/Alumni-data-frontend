@@ -1,7 +1,7 @@
 import axios from "axios"
 
 // Try using 127.0.0.1 instead of localhost to avoid potential DNS issues
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
 console.log("Using API URL:", API_URL)
 
@@ -41,7 +41,7 @@ api.interceptors.response.use(
         localStorage.removeItem("token")
         localStorage.removeItem("user")
 
-        // Redirect to login page if we're in a browser environment
+        // Redirect to login page
         if (typeof window !== "undefined") {
           window.location.href = "/login"
         }

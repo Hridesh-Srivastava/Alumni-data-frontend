@@ -47,7 +47,7 @@ const getStoredUsers = () => {
 }
 
 // Save users to localStorage
-const saveUsersToLocalStorage = (users: any[]) => {
+const saveUsersToLocalStorage = (users) => {
   try {
     localStorage.setItem("mockUsers", JSON.stringify(users))
   } catch (error) {
@@ -55,23 +55,31 @@ const saveUsersToLocalStorage = (users: any[]) => {
   }
 }
 
-export const login = async (email: string, password: string) => {
+export const login = async (email, password) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      })
+      try {
+        const response = await api.post("/auth/login", {
+          email,
+          password,
+        })
 
-      // Store user and token in localStorage
-      localStorage.setItem("user", JSON.stringify(response.data))
-      localStorage.setItem("token", response.data.token)
+        // Store user and token in localStorage
+        localStorage.setItem("user", JSON.stringify(response.data))
+        localStorage.setItem("token", response.data.token)
 
-      return response.data
+        return response.data
+      } catch (error) {
+        // Handle specific error cases
+        if (axios.isAxiosError(error) && error.response) {
+          throw new Error(error.response.data.message || "Invalid email or password")
+        }
+        throw error
+      }
     } else {
       // Backend is not available, use mock data
       console.log("Backend unavailable: Using mock login")
@@ -82,7 +90,7 @@ export const login = async (email: string, password: string) => {
       if (user) {
         // In a real app, we would compare hashed passwords
         if (user.password !== password && password !== "anypassword") {
-          throw new Error("Invalid password")
+          throw new Error("Invalid email or password")
         }
 
         // Don't send password to the frontend
@@ -134,47 +142,15 @@ export const login = async (email: string, password: string) => {
         return userWithoutPassword
       }
 
-      throw new Error("User not found")
+      throw new Error("Invalid email or password")
     }
   } catch (error) {
     console.error("Login error:", error)
-
-    // For development, allow login with any credentials
-    if (process.env.NODE_ENV === "development" && !(await checkBackendStatus())) {
-      const mockUser = {
-        _id: Math.random().toString(36).substring(2, 9),
-        name: email.split("@")[0],
-        email: email,
-        role: "admin",
-        token: `mock-jwt-token-${Math.random().toString(36).substring(2, 9)}`,
-        settings: {
-          notifications: {
-            email: true,
-            browser: false,
-          },
-          privacy: {
-            showEmail: false,
-            showProfile: true,
-          },
-          appearance: {
-            theme: "system",
-            fontSize: "medium",
-          },
-        },
-      }
-
-      // Store user and token in localStorage
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      localStorage.setItem("token", mockUser.token)
-
-      return mockUser
-    }
-
     throw error
   }
 }
 
-export const register = async (name: string, email: string, password: string) => {
+export const register = async (name, email, password) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -249,9 +225,6 @@ export const logout = () => {
   // Clear user and token from localStorage
   localStorage.removeItem("user")
   localStorage.removeItem("token")
-
-  // Force page reload to clear any in-memory state
-  window.location.href = "/"
 }
 
 export const getUserProfile = async () => {
@@ -302,7 +275,7 @@ export const getUserProfile = async () => {
   }
 }
 
-export const updateUserProfile = async (userData: any) => {
+export const updateUserProfile = async (userData) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -349,8 +322,8 @@ export const updateUserProfile = async (userData: any) => {
               mockUsers[userIndex] = {
                 ...mockUsers[userIndex],
                 ...userData,
+                password: mockUsers[userIndex].password, // Preserve password
               }
-
               saveUsersToLocalStorage(mockUsers)
             }
 
@@ -397,7 +370,7 @@ export const updateUserProfile = async (userData: any) => {
   }
 }
 
-export const updateUserSettings = async (settings: any) => {
+export const updateUserSettings = async (settings) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -476,6 +449,93 @@ export const updateUserSettings = async (settings: any) => {
     }
   } catch (error) {
     console.error("Update settings error:", error)
+    throw error
+  }
+}
+
+// Add password reset functionality
+export const requestPasswordReset = async (email) => {
+  try {
+    // Check if backend is available
+    const isBackendAvailable = await checkBackendStatus()
+
+    if (isBackendAvailable) {
+      // Backend is available, use real API
+      console.log("Sending password reset request to backend for:", email)
+      const response = await api.post("/auth/forgot-password", { email })
+      return response.data
+    } else {
+      // Backend is not available, simulate successful request
+      console.log("Backend unavailable: Simulating password reset request for:", email)
+
+      // Simulate API delay
+      await simulateApiDelay()
+
+      // Check if user exists in mock data
+      const mockUsers = getStoredUsers()
+      const user = mockUsers.find((u) => u.email === email)
+
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return {
+          success: true,
+          message: "If an account with that email exists, we've sent a password reset link.",
+        }
+      }
+
+      // In a real app, we would generate a token and send an email
+      // For mock purposes, just return success
+      return {
+        success: true,
+        message: "Password reset email sent",
+      }
+    }
+  } catch (error) {
+    console.error("Password reset request error:", error)
+
+    // For security reasons, don't reveal if the request failed due to user not existing
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return {
+        success: true,
+        message: "If an account with that email exists, we've sent a password reset link.",
+      }
+    }
+
+    throw error
+  }
+}
+
+// Add reset password functionality
+export const resetPassword = async (token, newPassword) => {
+  try {
+    // Check if backend is available
+    const isBackendAvailable = await checkBackendStatus()
+
+    if (isBackendAvailable) {
+      // Backend is available, use real API
+      const response = await api.post("/auth/reset-password", { token, newPassword })
+      return response.data
+    } else {
+      // Backend is not available, simulate successful reset
+      console.log("Backend unavailable: Simulating password reset")
+
+      // Simulate API delay
+      await simulateApiDelay()
+
+      // In a real app, we would validate the token and update the password
+      // For mock purposes, just return success
+      return {
+        success: true,
+        message: "Password has been reset successfully",
+      }
+    }
+  } catch (error) {
+    console.error("Password reset error:", error)
+
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || "Failed to reset password")
+    }
+
     throw error
   }
 }

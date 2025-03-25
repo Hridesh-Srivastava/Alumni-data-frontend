@@ -1,7 +1,7 @@
 import api, { checkBackendStatus } from "./backend-service"
 import axios from "axios"
 
-// Get stored alumni from localStorage or initialize with default data
+// Get stored alumni from localStorage or initialize with empty array
 const getStoredAlumni = () => {
   try {
     const storedAlumni = localStorage.getItem("mockAlumni")
@@ -12,55 +12,12 @@ const getStoredAlumni = () => {
     console.error("Error parsing stored alumni:", error)
   }
 
-  // Default alumni data
-  const defaultAlumni = [
-    {
-      _id: "1",
-      name: "Ashish Rautela",
-      academicUnit: "Himalayan School of Science/Engineering and Technology",
-      program: "BCA",
-      passingYear: "2021-22",
-      registrationNumber: "DD2017304002",
-      contactDetails: {
-        email: "ashish@example.com",
-        phone: "9876543210",
-      },
-      createdAt: new Date("2023-01-15").toISOString(),
-    },
-    {
-      _id: "2",
-      name: "Khushi",
-      academicUnit: "Himalayan School of Science/Engineering and Technology",
-      program: "BCA",
-      passingYear: "2021-22",
-      registrationNumber: "DD2017304003",
-      contactDetails: {
-        email: "khushi@example.com",
-        phone: "9876543211",
-      },
-      createdAt: new Date("2023-02-20").toISOString(),
-    },
-    {
-      _id: "3",
-      name: "Manish Semwal",
-      academicUnit: "Himalayan School of Science/Engineering and Technology",
-      program: "BCA",
-      passingYear: "2022-23",
-      registrationNumber: "DD2018304001",
-      contactDetails: {
-        email: "manish@example.com",
-        phone: "9876543212",
-      },
-      createdAt: new Date("2023-03-10").toISOString(),
-    },
-  ]
-
-  localStorage.setItem("mockAlumni", JSON.stringify(defaultAlumni))
-  return defaultAlumni
+  // Return empty array instead of default mock data
+  return []
 }
 
 // Save alumni to localStorage
-const saveAlumniToLocalStorage = (alumni: any[]) => {
+const saveAlumniToLocalStorage = (alumni) => {
   try {
     localStorage.setItem("mockAlumni", JSON.stringify(alumni))
   } catch (error) {
@@ -76,7 +33,7 @@ interface AlumniFilter {
   program?: string
 }
 
-export const getAlumni = async (filter: AlumniFilter) => {
+export const getAlumni = async (filter: AlumniFilter = {}) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -100,6 +57,12 @@ export const getAlumni = async (filter: AlumniFilter) => {
       }
 
       const response = await api.get(url)
+
+      // Also update localStorage with the real data for offline access
+      if (response.data && response.data.data) {
+        saveAlumniToLocalStorage(response.data.data)
+      }
+
       return response.data
     } else {
       // Backend is not available, use mock data
@@ -126,7 +89,7 @@ export const getAlumni = async (filter: AlumniFilter) => {
       }
 
       // Sort by creation date (newest first)
-      filteredAlumni.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      filteredAlumni.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
 
       // Paginate results
       const startIndex = (page - 1) * limit
@@ -161,7 +124,7 @@ export const getAlumni = async (filter: AlumniFilter) => {
   }
 }
 
-export const getAlumniById = async (id: string) => {
+export const getAlumniById = async (id) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -189,7 +152,7 @@ export const getAlumniById = async (id: string) => {
   }
 }
 
-export const createAlumni = async (alumniData: any) => {
+export const createAlumni = async (alumniData) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -197,41 +160,65 @@ export const createAlumni = async (alumniData: any) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       try {
-        const response = await api.post("/alumni", alumniData)
+        // Log the data being sent to help debug
+        console.log("Sending alumni data to backend:", alumniData)
+
+        // Make sure all required fields are present
+        const requiredFields = ["name", "academicUnit", "program", "passingYear", "registrationNumber"]
+        for (const field of requiredFields) {
+          if (!alumniData[field]) {
+            throw new Error(`Missing required field: ${field}`)
+          }
+        }
+
+        // Ensure contactDetails is an object
+        if (!alumniData.contactDetails) {
+          alumniData.contactDetails = {}
+        }
+
+        // Get the API URL and token
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+        const token = localStorage.getItem("token")
+
+        if (!token) {
+          throw new Error("Authentication required. Please log in again.")
+        }
+
+        // Use direct axios call to avoid potential issues with the api instance
+        const response = await axios.post(`${API_URL}/alumni`, alumniData, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        console.log("Alumni created successfully:", response.data)
 
         // Also store in localStorage for development convenience
         addAlumniToLocalStorage(response.data)
 
         return response.data
       } catch (error) {
+        console.error("Error creating alumni:", error)
+
+        // Provide more detailed error information
         if (axios.isAxiosError(error) && error.response) {
+          console.error("Server response:", error.response.data)
           throw new Error(error.response.data.message || "Failed to create alumni")
         }
+
+        // Fallback to localStorage in development mode
+        if (process.env.NODE_ENV === "development") {
+          console.log("Falling back to localStorage for alumni creation")
+          return createAlumniInLocalStorage(alumniData)
+        }
+
         throw error
       }
     } else {
       // Backend is not available, use mock data
       console.log("Backend unavailable: Creating alumni in localStorage only")
-
-      const mockAlumni = getStoredAlumni()
-
-      // Check if registration number already exists
-      if (mockAlumni.some((a) => a.registrationNumber === alumniData.registrationNumber)) {
-        throw new Error("Alumni with this registration number already exists")
-      }
-
-      // Create new alumni with ID
-      const newAlumni = {
-        _id: Math.random().toString(36).substring(2, 9),
-        ...alumniData,
-        createdAt: new Date().toISOString(),
-      }
-
-      // Add to mock alumni
-      mockAlumni.push(newAlumni)
-      saveAlumniToLocalStorage(mockAlumni)
-
-      return newAlumni
+      return createAlumniInLocalStorage(alumniData)
     }
   } catch (error) {
     console.error("Error creating alumni:", error)
@@ -239,8 +226,31 @@ export const createAlumni = async (alumniData: any) => {
   }
 }
 
+// Helper function to create alumni in localStorage
+function createAlumniInLocalStorage(alumniData) {
+  const mockAlumni = getStoredAlumni()
+
+  // Check if registration number already exists
+  if (mockAlumni.some((a) => a.registrationNumber === alumniData.registrationNumber)) {
+    throw new Error("Alumni with this registration number already exists")
+  }
+
+  // Create new alumni with ID
+  const newAlumni = {
+    _id: Math.random().toString(36).substring(2, 9),
+    ...alumniData,
+    createdAt: new Date().toISOString(),
+  }
+
+  // Add to mock alumni
+  mockAlumni.push(newAlumni)
+  saveAlumniToLocalStorage(mockAlumni)
+
+  return newAlumni
+}
+
 // Helper function to add alumni to localStorage
-function addAlumniToLocalStorage(alumniData: any) {
+function addAlumniToLocalStorage(alumniData) {
   try {
     const mockAlumni = getStoredAlumni()
     mockAlumni.push({
@@ -253,7 +263,7 @@ function addAlumniToLocalStorage(alumniData: any) {
   }
 }
 
-export const updateAlumni = async (id: string, alumniData: any) => {
+export const updateAlumni = async (id, alumniData) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -313,7 +323,7 @@ export const updateAlumni = async (id: string, alumniData: any) => {
   }
 }
 
-export const deleteAlumni = async (id: string) => {
+export const deleteAlumni = async (id) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -352,7 +362,7 @@ export const deleteAlumni = async (id: string) => {
   }
 }
 
-export const searchAlumni = async (query: string, academicUnit: string | null) => {
+export const searchAlumni = async (query, academicUnit) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -378,9 +388,9 @@ export const searchAlumni = async (query: string, academicUnit: string | null) =
       if (query) {
         filteredAlumni = filteredAlumni.filter(
           (a) =>
-            a.name.toLowerCase().includes(query.toLowerCase()) ||
-            a.registrationNumber.toLowerCase().includes(query.toLowerCase()) ||
-            a.program.toLowerCase().includes(query.toLowerCase()),
+            a.name?.toLowerCase().includes(query.toLowerCase()) ||
+            a.registrationNumber?.toLowerCase().includes(query.toLowerCase()) ||
+            a.program?.toLowerCase().includes(query.toLowerCase()),
         )
       }
 
@@ -404,10 +414,15 @@ export const getStats = async () => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.get("/alumni/stats")
+      console.log("Fetching stats from backend API")
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+
+      // Use direct axios call to avoid potential issues
+      const response = await axios.get(`${API_URL}/alumni/stats`)
+      console.log("Stats received from backend:", response.data)
       return response.data
     } else {
-      // Backend is not available, use mock data
+      // Backend is not available, generate stats from localStorage
       console.log("Backend unavailable: Generating stats from localStorage")
 
       const mockAlumni = getStoredAlumni()
@@ -416,20 +431,38 @@ export const getStats = async () => {
       const totalAlumni = mockAlumni.length
 
       // Count by academic unit
-      const byAcademicUnit: Record<string, number> = {}
+      const byAcademicUnit = {}
       mockAlumni.forEach((alumni) => {
-        byAcademicUnit[alumni.academicUnit] = (byAcademicUnit[alumni.academicUnit] || 0) + 1
+        if (alumni.academicUnit) {
+          byAcademicUnit[alumni.academicUnit] = (byAcademicUnit[alumni.academicUnit] || 0) + 1
+        }
       })
 
       // Count by passing year
-      const byPassingYear: Record<string, number> = {}
+      const byPassingYear = {}
       mockAlumni.forEach((alumni) => {
-        byPassingYear[alumni.passingYear] = (byPassingYear[alumni.passingYear] || 0) + 1
+        if (alumni.passingYear) {
+          byPassingYear[alumni.passingYear] = (byPassingYear[alumni.passingYear] || 0) + 1
+        }
       })
 
-      // Mock employment and higher education rates
-      const employmentRate = 85
-      const higherEducationRate = 42
+      // Count employment status
+      let employedCount = 0
+      mockAlumni.forEach((alumni) => {
+        if (alumni.employment && alumni.employment.type === "Employed") {
+          employedCount++
+        }
+      })
+      const employmentRate = totalAlumni > 0 ? Math.round((employedCount / totalAlumni) * 100) : 0
+
+      // Count higher education
+      let higherEducationCount = 0
+      mockAlumni.forEach((alumni) => {
+        if (alumni.higherEducation && alumni.higherEducation.institutionName) {
+          higherEducationCount++
+        }
+      })
+      const higherEducationRate = totalAlumni > 0 ? Math.round((higherEducationCount / totalAlumni) * 100) : 0
 
       return {
         totalAlumni,
@@ -442,25 +475,15 @@ export const getStats = async () => {
   } catch (error) {
     console.error("Error fetching statistics:", error)
 
-    // Generate mock stats as fallback
+    // Generate basic stats as fallback
     const mockAlumni = getStoredAlumni()
 
     return {
       totalAlumni: mockAlumni.length,
-      byAcademicUnit: {
-        "Himalayan School of Science/Engineering and Technology": mockAlumni.filter(
-          (a) => a.academicUnit === "Himalayan School of Science/Engineering and Technology",
-        ).length,
-        "Himalayan Institute of Medical Sciences (Medical)": mockAlumni.filter(
-          (a) => a.academicUnit === "Himalayan Institute of Medical Sciences (Medical)",
-        ).length,
-      },
-      byPassingYear: {
-        "2021-22": mockAlumni.filter((a) => a.passingYear === "2021-22").length,
-        "2022-23": mockAlumni.filter((a) => a.passingYear === "2022-23").length,
-      },
-      employmentRate: 85,
-      higherEducationRate: 42,
+      byAcademicUnit: {},
+      byPassingYear: {},
+      employmentRate: 0,
+      higherEducationRate: 0,
     }
   }
 }
