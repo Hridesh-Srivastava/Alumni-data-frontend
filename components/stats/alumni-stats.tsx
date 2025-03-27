@@ -4,19 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getStats } from "@/services/alumni-service"
-import {
-  PieChart,
-  BarChart,
-  Pie,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts"
+import { PieChart, BarChart, Pie, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 interface StatsData {
   totalAlumni: number
@@ -36,10 +24,6 @@ export function AlumniStats() {
     try {
       setLoading(true)
       console.log("Fetching alumni statistics...")
-
-      // Clear any cached data
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-      const timestamp = new Date().getTime()
 
       // Add a timestamp to prevent caching
       const data = await getStats()
@@ -132,31 +116,17 @@ export function AlumniStats() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Alumni by Academic Unit</CardTitle>
-          <CardDescription>Distribution of alumni across different academic units</CardDescription>
+          <CardTitle>HSST Engineering Alumni</CardTitle>
+          <CardDescription>Total alumni count: {stats?.totalAlumni || 0}</CardDescription>
         </CardHeader>
         <CardContent className="h-80">
           {academicUnitData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={academicUnitData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                >
-                  {academicUnitData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name, props) => [value, props.payload.fullName]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="flex h-full flex-col items-center justify-center">
+              <div className="text-4xl font-bold">{stats?.totalAlumni || 0}</div>
+              <p className="mt-4 text-center text-muted-foreground">
+                Total registered alumni from Himalayan School of Science and Technology
+              </p>
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">No data available</p>

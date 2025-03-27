@@ -11,15 +11,19 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 15000, // Increased timeout to 15 seconds
 })
 
 // Add token to requests if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token")
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    try {
+      const token = localStorage.getItem("token")
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    } catch (error) {
+      console.error("Error setting auth header:", error)
     }
     return config
   },
@@ -70,7 +74,7 @@ export const checkBackendStatus = async (): Promise<boolean> => {
       try {
         console.log(`Trying to connect to: ${endpoint}`)
         const response = await axios.get(endpoint, {
-          timeout: 3000,
+          timeout: 5000,
         })
         if (response.status === 200) {
           console.log(`Successfully connected to: ${endpoint}`)

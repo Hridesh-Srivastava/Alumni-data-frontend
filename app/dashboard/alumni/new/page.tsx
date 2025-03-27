@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -22,7 +24,6 @@ import { AlertCircle } from "lucide-react"
 const alumniFormSchema = z.object({
   // Basic Information
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  academicUnit: z.string().min(1, { message: "Please select an academic unit." }),
   program: z.string().min(1, { message: "Program is required." }),
   passingYear: z.string().min(1, { message: "Passing year is required." }),
   registrationNumber: z.string().min(1, { message: "Registration number is required." }),
@@ -38,7 +39,6 @@ const alumniFormSchema = z.object({
   qualifiedExams: z.object({
     examName: z.string().optional().or(z.literal("")),
     rollNumber: z.string().optional().or(z.literal("")),
-    certificateUrl: z.string().optional().or(z.literal("")),
   }),
 
   // Employment
@@ -47,7 +47,6 @@ const alumniFormSchema = z.object({
     employerName: z.string().optional().or(z.literal("")),
     employerContact: z.string().optional().or(z.literal("")),
     employerEmail: z.string().email({ message: "Please enter a valid email address." }).optional().or(z.literal("")),
-    documentUrl: z.string().optional().or(z.literal("")),
     selfEmploymentDetails: z.string().optional().or(z.literal("")),
   }),
 
@@ -55,7 +54,6 @@ const alumniFormSchema = z.object({
   higherEducation: z.object({
     institutionName: z.string().optional().or(z.literal("")),
     programName: z.string().optional().or(z.literal("")),
-    documentUrl: z.string().optional().or(z.literal("")),
   }),
 })
 
@@ -68,12 +66,16 @@ export default function NewAlumniPage() {
   const [error, setError] = useState("")
   const router = useRouter()
 
+  // State for file uploads
+  const [basicInfoImage, setBasicInfoImage] = useState<File | null>(null)
+  const [qualificationImage, setQualificationImage] = useState<File | null>(null)
+  const [employmentImage, setEmploymentImage] = useState<File | null>(null)
+
   // Define form with default values
   const form = useForm<AlumniFormValues>({
     resolver: zodResolver(alumniFormSchema),
     defaultValues: {
       name: "",
-      academicUnit: "",
       program: "",
       passingYear: "",
       registrationNumber: "",
@@ -85,20 +87,17 @@ export default function NewAlumniPage() {
       qualifiedExams: {
         examName: "",
         rollNumber: "",
-        certificateUrl: "",
       },
       employment: {
         type: "",
         employerName: "",
         employerContact: "",
         employerEmail: "",
-        documentUrl: "",
         selfEmploymentDetails: "",
       },
       higherEducation: {
         institutionName: "",
         programName: "",
-        documentUrl: "",
       },
     },
   })
@@ -118,6 +117,16 @@ export default function NewAlumniPage() {
     fetchAcademicUnits()
   }, [])
 
+  // Handle file changes
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+  ) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+    }
+  }
+
   // Handle form submission
   const onSubmit = async (values: AlumniFormValues) => {
     setIsLoading(true)
@@ -127,8 +136,16 @@ export default function NewAlumniPage() {
       // Log the data being submitted
       console.log("Submitting alumni data:", values)
 
-      // Create alumni record
-      await createAlumni(values)
+      // Create alumni record with files
+      const formData = {
+        ...values,
+        basicInfoImage,
+        qualificationImage,
+        employmentImage,
+        academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+      }
+
+      await createAlumni(formData)
 
       toast.success("Alumni record created successfully")
       router.push("/dashboard/alumni")
@@ -242,31 +259,6 @@ export default function NewAlumniPage() {
 
                   <FormField
                     control={form.control}
-                    name="academicUnit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Academic Unit*</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select academic unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {academicUnits.map((unit: any) => (
-                              <SelectItem key={unit._id} value={unit.name}>
-                                {unit.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
                     name="program"
                     render={({ field }) => (
                       <FormItem>
@@ -317,6 +309,23 @@ export default function NewAlumniPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Basic Info File Upload */}
+                  <div className="space-y-2">
+                    <FormLabel>Upload Basic Info Document</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileChange(e, setBasicInfoImage)}
+                        className="flex-1"
+                      />
+                      {basicInfoImage && (
+                        <div className="text-sm text-green-600">File selected: {basicInfoImage.name}</div>
+                      )}
+                    </div>
+                    <FormDescription>Upload any supporting document for basic information (optional)</FormDescription>
+                  </div>
 
                   <div className="flex justify-between pt-4">
                     <Button variant="outline" type="button" onClick={() => router.back()}>
@@ -410,6 +419,23 @@ export default function NewAlumniPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Qualification File Upload */}
+                  <div className="space-y-2">
+                    <FormLabel>Upload Qualification Certificate</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileChange(e, setQualificationImage)}
+                        className="flex-1"
+                      />
+                      {qualificationImage && (
+                        <div className="text-sm text-green-600">File selected: {qualificationImage.name}</div>
+                      )}
+                    </div>
+                    <FormDescription>Upload certificate for qualified exams (optional)</FormDescription>
+                  </div>
 
                   <div className="flex justify-between pt-4">
                     <Button variant="outline" type="button" onClick={goToPreviousTab}>
@@ -518,6 +544,23 @@ export default function NewAlumniPage() {
                     />
                   )}
 
+                  {/* Employment File Upload */}
+                  <div className="space-y-2">
+                    <FormLabel>Upload Employment Document</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileChange(e, setEmploymentImage)}
+                        className="flex-1"
+                      />
+                      {employmentImage && (
+                        <div className="text-sm text-green-600">File selected: {employmentImage.name}</div>
+                      )}
+                    </div>
+                    <FormDescription>Upload employment proof document (optional)</FormDescription>
+                  </div>
+
                   <h3 className="mt-6 text-lg font-medium">Higher Education</h3>
                   <FormField
                     control={form.control}
@@ -579,7 +622,7 @@ export default function NewAlumniPage() {
                           </div>
                           <div className="grid grid-cols-3 gap-1">
                             <p className="font-medium">Academic Unit:</p>
-                            <p className="col-span-2">{form.watch("academicUnit")}</p>
+                            <p className="col-span-2">Himalayan School of Science and Technology</p>
                           </div>
                           <div className="grid grid-cols-3 gap-1">
                             <p className="font-medium">Program:</p>
@@ -592,6 +635,10 @@ export default function NewAlumniPage() {
                           <div className="grid grid-cols-3 gap-1">
                             <p className="font-medium">Registration Number:</p>
                             <p className="col-span-2">{form.watch("registrationNumber")}</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Basic Info Document:</p>
+                            <p className="col-span-2">{basicInfoImage ? basicInfoImage.name : "Not provided"}</p>
                           </div>
                         </div>
                       </div>
@@ -612,6 +659,88 @@ export default function NewAlumniPage() {
                           <div className="grid grid-cols-3 gap-1">
                             <p className="font-medium">Address:</p>
                             <p className="col-span-2">{form.watch("contactDetails.address") || "Not provided"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium">Qualifications</h3>
+                      <div className="mt-2 rounded-lg bg-muted p-4">
+                        <div className="grid gap-2">
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Exam Name:</p>
+                            <p className="col-span-2">{form.watch("qualifiedExams.examName") || "Not provided"}</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Roll Number:</p>
+                            <p className="col-span-2">{form.watch("qualifiedExams.rollNumber") || "Not provided"}</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Certificate:</p>
+                            <p className="col-span-2">
+                              {qualificationImage ? qualificationImage.name : "Not provided"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium">Employment</h3>
+                      <div className="mt-2 rounded-lg bg-muted p-4">
+                        <div className="grid gap-2">
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Type:</p>
+                            <p className="col-span-2">{form.watch("employment.type") || "Not provided"}</p>
+                          </div>
+                          {form.watch("employment.type") === "Employed" && (
+                            <>
+                              <div className="grid grid-cols-3 gap-1">
+                                <p className="font-medium">Employer:</p>
+                                <p className="col-span-2">{form.watch("employment.employerName") || "Not provided"}</p>
+                              </div>
+                              <div className="grid grid-cols-3 gap-1">
+                                <p className="font-medium">Contact:</p>
+                                <p className="col-span-2">
+                                  {form.watch("employment.employerContact") || "Not provided"}
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-3 gap-1">
+                                <p className="font-medium">Email:</p>
+                                <p className="col-span-2">{form.watch("employment.employerEmail") || "Not provided"}</p>
+                              </div>
+                            </>
+                          )}
+                          {form.watch("employment.type") === "Self-employed" && (
+                            <div className="grid grid-cols-3 gap-1">
+                              <p className="font-medium">Details:</p>
+                              <p className="col-span-2">
+                                {form.watch("employment.selfEmploymentDetails") || "Not provided"}
+                              </p>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Document:</p>
+                            <p className="col-span-2">{employmentImage ? employmentImage.name : "Not provided"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium">Higher Education</h3>
+                      <div className="mt-2 rounded-lg bg-muted p-4">
+                        <div className="grid gap-2">
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Institution:</p>
+                            <p className="col-span-2">
+                              {form.watch("higherEducation.institutionName") || "Not provided"}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Program:</p>
+                            <p className="col-span-2">{form.watch("higherEducation.programName") || "Not provided"}</p>
                           </div>
                         </div>
                       </div>

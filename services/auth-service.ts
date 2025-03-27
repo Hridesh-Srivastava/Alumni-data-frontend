@@ -66,18 +66,20 @@ export const login = async (email, password) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
         console.log("Attempting login with API URL:", API_URL)
 
-        const response = await axios.post(
-          `${API_URL}/auth/login`,
-          {
+        const response = await axios({
+          method: "post",
+          url: `${API_URL}/auth/login`,
+          data: {
             email,
             password,
           },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
+          headers: {
+            "Content-Type": "application/json",
           },
-        )
+          timeout: 10000, // 10 seconds timeout
+        })
+
+        console.log("Login response:", response.data)
 
         // Store user and token in localStorage
         localStorage.setItem("user", JSON.stringify(response.data))
@@ -173,19 +175,19 @@ export const register = async (name, email, password) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
         console.log("Attempting registration with API URL:", API_URL)
 
-        const response = await axios.post(
-          `${API_URL}/auth/register`,
-          {
+        const response = await axios({
+          method: "post",
+          url: `${API_URL}/auth/register`,
+          data: {
             name,
             email,
             password,
           },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
+          headers: {
+            "Content-Type": "application/json",
           },
-        )
+          timeout: 10000, // 10 seconds timeout
+        })
 
         console.log("Registration successful:", response.data)
 
@@ -195,11 +197,12 @@ export const register = async (name, email, password) => {
 
         return response.data
       } catch (error) {
+        console.error("Registration error:", error)
         if (axios.isAxiosError(error) && error.response) {
           console.error("Registration error details:", error.response.data)
           throw new Error(error.response.data.message || "Registration failed")
         }
-        throw error
+        throw new Error("Registration failed. Please try again.")
       }
     } else {
       // Backend is not available, use mock data
@@ -315,10 +318,33 @@ export const updateUserProfile = async (userData) => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.put("/auth/profile", userData)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.")
+      }
+
+      const response = await axios({
+        method: "put",
+        url: `${API_URL}/auth/profile`,
+        data: userData,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 10000, // 10 seconds timeout
+      })
+
+      console.log("Profile update response:", response.data)
 
       // Update stored user data
-      localStorage.setItem("user", JSON.stringify(response.data))
+      const storedUser = localStorage.getItem("user")
+      if (storedUser) {
+        const user = JSON.parse(storedUser)
+        const updatedUser = { ...user, ...response.data }
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+      }
 
       // Update token if a new one is returned
       if (response.data.token) {
@@ -341,21 +367,21 @@ export const updateUserProfile = async (userData) => {
 
             if (userIndex !== -1) {
               // Add password validation when updating password
-              if (userData.password) {
+              if (userData.newPassword) {
                 // If currentPassword is provided, verify it
                 if (userData.currentPassword && userData.currentPassword !== mockUsers[userIndex].password) {
                   throw new Error("Current password is incorrect")
                 }
 
                 // Update the password
-                mockUsers[userIndex].password = userData.password
+                mockUsers[userIndex].password = userData.newPassword
               }
 
               // Update other user data
               mockUsers[userIndex] = {
                 ...mockUsers[userIndex],
                 ...userData,
-                password: mockUsers[userIndex].password, // Preserve password
+                password: userData.newPassword || mockUsers[userIndex].password, // Update password if provided
               }
               saveUsersToLocalStorage(mockUsers)
             }
@@ -387,7 +413,7 @@ export const updateUserProfile = async (userData) => {
           mockUsers[userIndex] = {
             ...mockUsers[userIndex],
             ...userData,
-            password: mockUsers[userIndex].password, // Preserve password
+            password: userData.newPassword || mockUsers[userIndex].password, // Update password if provided
           }
           saveUsersToLocalStorage(mockUsers)
         }
@@ -410,7 +436,25 @@ export const updateUserSettings = async (settings) => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.put("/auth/settings", { settings })
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.")
+      }
+
+      const response = await axios({
+        method: "put",
+        url: `${API_URL}/auth/settings`,
+        data: { settings },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 10000, // 10 seconds timeout
+      })
+
+      console.log("Settings update response:", response.data)
 
       // Update stored user data
       const storedUser = localStorage.getItem("user")
@@ -475,7 +519,7 @@ export const updateUserSettings = async (settings) => {
           saveUsersToLocalStorage(mockUsers)
         }
 
-        return updatedUser
+        return { settings: updatedUser.settings }
       }
 
       throw new Error("User not found")
@@ -497,15 +541,15 @@ export const requestPasswordReset = async (email) => {
       console.log("Sending password reset request to backend for:", email)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      const response = await axios.post(
-        `${API_URL}/auth/forgot-password`,
-        { email },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const response = await axios({
+        method: "post",
+        url: `${API_URL}/auth/forgot-password`,
+        data: { email },
+        headers: {
+          "Content-Type": "application/json",
         },
-      )
+        timeout: 10000, // 10 seconds timeout
+      })
 
       return response.data
     } else {
@@ -560,15 +604,15 @@ export const resetPassword = async (token, newPassword) => {
       console.log("Sending password reset to backend with token:", token)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      const response = await axios.post(
-        `${API_URL}/auth/reset-password`,
-        { token, newPassword },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const response = await axios({
+        method: "post",
+        url: `${API_URL}/auth/reset-password`,
+        data: { token, newPassword },
+        headers: {
+          "Content-Type": "application/json",
         },
-      )
+        timeout: 10000, // 10 seconds timeout
+      })
 
       return response.data
     } else {
