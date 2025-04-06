@@ -1,42 +1,48 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import { Eye, Edit, Trash2 } from "lucide-react"
+import { getAlumni } from "@/services/alumni-service"
 import { toast } from "sonner"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { Loader2, AlertCircle } from 'lucide-react'
+import Link from "next/link"
 
 interface Alumni {
   _id: string
   name: string
+  contactDetails?: {
+    email?: string
+  }
   academicUnit: string
-  program: string
   passingYear: string
-  registrationNumber: string
+  program: string
+}
+
+interface FilterParams {
+  academicUnit?: string
+  passingYear?: string
+  program?: string
 }
 
 interface AlumniTableProps {
-  filter: {
-    academicUnit: string
-    passingYear: string
-    program: string
-  }
+  filter: FilterParams
 }
 
 export function AlumniTable({ filter }: AlumniTableProps) {
-  const { token } = useAuth()
   const [alumni, setAlumni] = useState<Alumni[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { token } = useAuth()
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -47,135 +53,84 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     const fetchAlumni = async () => {
       try {
         setIsLoading(true)
-        if (token) {
-          // In a real app, this would fetch from the API with filters
-          // For demo purposes, we'll use mock data
-          const mockAlumni = [
-            {
-              _id: "1",
-              name: "Ashish Rautela",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "BCA",
-              passingYear: "2021-22",
-              registrationNumber: "DD2017304002",
-            },
-            {
-              _id: "2",
-              name: "Khushi",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "BCA",
-              passingYear: "2021-22",
-              registrationNumber: "DD2017304003",
-            },
-            {
-              _id: "3",
-              name: "Manish Semwal",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "BCA",
-              passingYear: "2022-23",
-              registrationNumber: "DD2018304001",
-            },
-            {
-              _id: "4",
-              name: "Mansi Pokhriyal",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "BCA",
-              passingYear: "2022-23",
-              registrationNumber: "DD2018304005",
-            },
-            {
-              _id: "5",
-              name: "Nikita Negi",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "BCA",
-              passingYear: "2022-23",
-              registrationNumber: "DD2018304008",
-            },
-            {
-              _id: "6",
-              name: "Rahul Sharma",
-              academicUnit: "Himalayan School of Management Studies",
-              program: "MBA",
-              passingYear: "2019-20",
-              registrationNumber: "DD2017204001",
-            },
-            {
-              _id: "7",
-              name: "Priya Singh",
-              academicUnit: "Himalayan Institute of Medical Sciences (Medical)",
-              program: "MBBS",
-              passingYear: "2018-19",
-              registrationNumber: "DD2013104005",
-            },
-            {
-              _id: "8",
-              name: "Amit Kumar",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "B.Tech",
-              passingYear: "2019-20",
-              registrationNumber: "DD2015304010",
-            },
-            {
-              _id: "9",
-              name: "Neha Gupta",
-              academicUnit: "Himalayan College of Nursing",
-              program: "B.Sc Nursing",
-              passingYear: "2020-21",
-              registrationNumber: "DD2016404002",
-            },
-            {
-              _id: "10",
-              name: "Vikram Joshi",
-              academicUnit: "Himalayan School of Science/Engineering and Technology",
-              program: "MCA",
-              passingYear: "2018-19",
-              registrationNumber: "DD2016304015",
-            },
-          ]
+        setError(null)
 
-          // Apply filters if any
-          let filteredAlumni = [...mockAlumni]
+        // Build filter object
+        const filterParams: any = {
+          page: pagination.currentPage,
+          limit: 10,
+        }
 
-          if (filter.academicUnit && filter.academicUnit !== "all") {
-            filteredAlumni = filteredAlumni.filter((a) => a.academicUnit === filter.academicUnit)
-          }
+        if (filter.academicUnit && filter.academicUnit !== "all") {
+          filterParams.academicUnit = filter.academicUnit
+        }
 
-          if (filter.passingYear && filter.passingYear !== "all") {
-            filteredAlumni = filteredAlumni.filter((a) => a.passingYear === filter.passingYear)
-          }
+        if (filter.passingYear && filter.passingYear !== "all") {
+          filterParams.passingYear = filter.passingYear
+        }
 
-          if (filter.program) {
-            filteredAlumni = filteredAlumni.filter((a) =>
-              a.program.toLowerCase().includes(filter.program.toLowerCase()),
-            )
-          }
+        if (filter.program) {
+          filterParams.program = filter.program
+        }
 
-          setAlumni(filteredAlumni)
+        const response = await getAlumni(filterParams)
+
+        if (response && response.data) {
+          setAlumni(response.data)
+          setPagination({
+            currentPage: response.pagination?.page || 1,
+            totalPages: response.pagination?.totalPages || 1,
+            total: response.pagination?.total || 0,
+          })
+        } else {
+          // Fallback to empty array if no data
+          setAlumni([])
           setPagination({
             currentPage: 1,
-            totalPages: Math.ceil(filteredAlumni.length / 10),
-            total: filteredAlumni.length,
+            totalPages: 1,
+            total: 0,
           })
         }
       } catch (error) {
         console.error("Error fetching alumni:", error)
-        toast.error("Failed to fetch alumni records")
+        setError("Failed to fetch alumni records")
+        // Set empty data on error
+        setAlumni([])
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchAlumni()
-  }, [token, filter])
+  }, [token, filter, pagination.currentPage])
 
-  const handleDelete = (id: string) => {
-    // In a real app, this would call the API to delete the record
-    toast.success("Record deleted", {
-      description: "The alumni record has been deleted successfully.",
-    })
+  const handlePageChange = (page: number) => {
+    setPagination({ ...pagination, currentPage: page })
+  }
 
-    // Update the local state
-    setAlumni(alumni.filter((a) => a._id !== id))
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-md bg-destructive/10 p-6 text-center">
+        <AlertCircle className="h-6 w-6 text-destructive mx-auto mb-2" />
+        <h3 className="font-medium text-destructive">Error loading alumni</h3>
+        <p className="text-sm text-destructive/80 mt-1">{error}</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => setPagination({ ...pagination, currentPage: 1 })}
+        >
+          Try Again
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -185,61 +140,40 @@ export function AlumniTable({ filter }: AlumniTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Registration No.</TableHead>
-              <TableHead className="hidden md:table-cell">Program</TableHead>
-              <TableHead className="hidden md:table-cell">Passing Year</TableHead>
-              <TableHead className="hidden lg:table-cell">Academic Unit</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Academic Unit</TableHead>
+              <TableHead>Passing Year</TableHead>
+              <TableHead>Program</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              Array(5)
-                .fill(0)
-                .map((_, index) => (
-                  <TableRow key={index}>
-                    <TableCell colSpan={6}>
-                      <div className="h-6 w-full animate-pulse rounded bg-gray-200"></div>
-                    </TableCell>
-                  </TableRow>
-                ))
-            ) : alumni.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  No alumni records found
-                </TableCell>
-              </TableRow>
-            ) : (
+            {alumni.length > 0 ? (
               alumni.map((alumnus) => (
                 <TableRow key={alumnus._id}>
                   <TableCell className="font-medium">{alumnus.name}</TableCell>
-                  <TableCell>{alumnus.registrationNumber}</TableCell>
-                  <TableCell className="hidden md:table-cell">{alumnus.program}</TableCell>
-                  <TableCell className="hidden md:table-cell">{alumnus.passingYear}</TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {alumnus.academicUnit.length > 30
-                      ? `${alumnus.academicUnit.substring(0, 30)}...`
-                      : alumnus.academicUnit}
-                  </TableCell>
+                  <TableCell>{alumnus.contactDetails?.email || "-"}</TableCell>
+                  <TableCell>{alumnus.academicUnit}</TableCell>
+                  <TableCell>{alumnus.passingYear}</TableCell>
+                  <TableCell>{alumnus.program}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Link href={`/dashboard/alumni/${alumnus._id}`}>
-                        <Button variant="ghost" size="icon" title="View">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Button variant="outline" size="sm">View</Button>
                       </Link>
                       <Link href={`/dashboard/alumni/${alumnus._id}/edit`}>
-                        <Button variant="ghost" size="icon" title="Edit">
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <Button variant="outline" size="sm">Edit</Button>
                       </Link>
-                      <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(alumnus._id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No alumni records found.
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
@@ -249,50 +183,43 @@ export function AlumniTable({ filter }: AlumniTableProps) {
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious
-                href="#"
+              <PaginationPrevious 
+                href="#" 
                 onClick={(e) => {
                   e.preventDefault()
                   if (pagination.currentPage > 1) {
-                    setPagination({
-                      ...pagination,
-                      currentPage: pagination.currentPage - 1,
-                    })
+                    handlePageChange(pagination.currentPage - 1)
                   }
                 }}
-                className={pagination.currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                className={pagination.currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
+            
             {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
               <PaginationItem key={page}>
-                <PaginationLink
-                  href="#"
-                  isActive={page === pagination.currentPage}
+                <PaginationLink 
+                  href="#" 
                   onClick={(e) => {
                     e.preventDefault()
-                    setPagination({
-                      ...pagination,
-                      currentPage: page,
-                    })
+                    handlePageChange(page)
                   }}
+                  isActive={page === pagination.currentPage}
                 >
                   {page}
                 </PaginationLink>
               </PaginationItem>
             ))}
+            
             <PaginationItem>
-              <PaginationNext
-                href="#"
+              <PaginationNext 
+                href="#" 
                 onClick={(e) => {
                   e.preventDefault()
                   if (pagination.currentPage < pagination.totalPages) {
-                    setPagination({
-                      ...pagination,
-                      currentPage: pagination.currentPage + 1,
-                    })
+                    handlePageChange(pagination.currentPage + 1)
                   }
                 }}
-                className={pagination.currentPage === pagination.totalPages ? "pointer-events-none opacity-50" : ""}
+                className={pagination.currentPage >= pagination.totalPages ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
           </PaginationContent>
@@ -302,3 +229,4 @@ export function AlumniTable({ filter }: AlumniTableProps) {
   )
 }
 
+export default AlumniTable

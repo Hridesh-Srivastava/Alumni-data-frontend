@@ -12,13 +12,18 @@ export function DashboardStats() {
     higherEducationRate: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(null)
 
   const fetchStats = async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await getStats()
+      // Get token from localStorage
+      const token = localStorage.getItem("token")
+
+      // Pass token to getStats function
+      const data = await getStats(token)
+
       setStats({
         totalAlumni: data.totalAlumni || 0,
         employmentRate: data.employmentRate || 0,

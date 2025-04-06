@@ -1,9 +1,9 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { createAlumni, updateAlumni, getAlumniById } from "@/services/alumni-service"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,56 +11,86 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
-import { useAuth } from "@/context/AuthContext"
-import { createAlumni, updateAlumni } from "@/services/alumni-service"
+import { Loader2 } from 'lucide-react'
 
 interface AlumniFormProps {
-  initialData?: any
-  isEditing?: boolean
+  id?: string
+  isEdit?: boolean
 }
 
-export function AlumniForm({ initialData, isEditing = false }: AlumniFormProps) {
+export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
   const router = useRouter()
-  const { token } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("basic-info")
   const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    academicUnit: initialData?.academicUnit || "",
-    program: initialData?.program || "",
-    passingYear: initialData?.passingYear || "",
-    registrationNumber: initialData?.registrationNumber || "",
-    qualifiedExams: {
-      examName: initialData?.qualifiedExams?.examName || "Not applicable",
-      rollNumber: initialData?.qualifiedExams?.rollNumber || "",
-      certificateUrl: initialData?.qualifiedExams?.certificateUrl || "",
+    name: "",
+    registrationNumber: "",
+    program: "",
+    passingYear: "",
+    contactDetails: {
+      email: "",
+      phone: "",
+      address: "",
+    },
+    qualifications: {
+      examName: "",
+      rollNumber: "",
+      certificate: "",
     },
     employment: {
-      type: initialData?.employment?.type || "Unemployed",
-      employerName: initialData?.employment?.employerName || "",
-      employerContact: initialData?.employment?.employerContact || "",
-      employerEmail: initialData?.employment?.employerEmail || "",
-      documentUrl: initialData?.employment?.documentUrl || "",
-      selfEmploymentDetails: initialData?.employment?.selfEmploymentDetails || "",
+      type: "",
+      document: "",
     },
     higherEducation: {
-      institutionName: initialData?.higherEducation?.institutionName || "",
-      programName: initialData?.higherEducation?.programName || "",
-      documentUrl: initialData?.higherEducation?.documentUrl || "",
+      institutionName: "",
+      program: "",
     },
+    basicInfoImage: null,
+    qualificationImage: null,
+    employmentImage: null,
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Fetch alumni data if in edit mode
+  useEffect(() => {
+    if (isEdit && id) {
+      const fetchAlumni = async () => {
+        try {
+          setIsLoading(true)
+          const data = await getAlumniById(id)
+          
+          // Initialize nested objects if they don't exist
+          const alumni = {
+            ...data,
+            contactDetails: data.contactDetails || {},
+            qualifications: data.qualifications || {},
+            employment: data.employment || {},
+            higherEducation: data.higherEducation || {},
+          }
+          
+          setFormData(alumni)
+        } catch (error) {
+          console.error("Error fetching alumni:", error)
+          toast.error("Failed to fetch alumni details")
+        } finally {
+          setIsLoading(false)
+        }
+      }
+
+      fetchAlumni()
+    }
+  }, [isEdit, id])
+
+  const handleChange = (e) => {
     const { name, value } = e.target
-
+    
+    // Handle nested fields
     if (name.includes(".")) {
-      const [section, field] = name.split(".")
+      const [parent, child] = name.split(".")
       setFormData({
         ...formData,
-        [section]: {
-          ...formData[section as keyof typeof formData],
-          [field]: value,
+        [parent]: {
+          ...formData[parent],
+          [child]: value,
         },
       })
     } else {
@@ -71,14 +101,15 @@ export function AlumniForm({ initialData, isEditing = false }: AlumniFormProps) 
     }
   }
 
-  const handleSelectChange = (value: string, name: string) => {
+  const handleSelectChange = (value, name) => {
+    // Handle nested fields
     if (name.includes(".")) {
-      const [section, field] = name.split(".")
+      const [parent, child] = name.split(".")
       setFormData({
         ...formData,
-        [section]: {
-          ...formData[section as keyof typeof formData],
-          [field]: value,
+        [parent]: {
+          ...formData[parent],
+          [child]: value,
         },
       })
     } else {
@@ -89,445 +120,351 @@ export function AlumniForm({ initialData, isEditing = false }: AlumniFormProps) 
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    // In a real app, this would handle file uploads
-    // For demo purposes, we'll just set a placeholder URL
-    const [section, field] = fieldName.split(".")
-    setFormData({
-      ...formData,
-      [section]: {
-        ...formData[section as keyof typeof formData],
-        [field]: "https://example.com/document.pdf",
-      },
-    })
+  const handleFileChange = (e) => {
+    const { name, files } = e.target
+    if (files && files[0]) {
+      setFormData({
+        ...formData,
+        [name]: files[0],
+      })
+    }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsLoading(true)
-
+    
+    // Validate required fields
+    if (!formData.name || !formData.registrationNumber || !formData.program || !formData.passingYear) {
+      toast.error("Please fill in all required fields")
+      setActiveTab("basic-info")
+      return
+    }
+    
     try {
-      if (!token) {
-        throw new Error("Authentication token not found")
-      }
-
-      // Validate required fields
-      if (
-        !formData.name ||
-        !formData.academicUnit ||
-        !formData.program ||
-        !formData.passingYear ||
-        !formData.registrationNumber
-      ) {
-        throw new Error("Please fill all required fields")
-      }
-
-      if (isEditing && initialData?._id) {
+      setIsLoading(true)
+      
+      if (isEdit && id) {
         // Update existing alumni
-        await updateAlumni(initialData._id, formData, token)
-        toast.success("Alumni record updated successfully")
+        await updateAlumni(id, formData)
+        toast.success("Alumni updated successfully")
       } else {
         // Create new alumni
-        await createAlumni(formData, token)
-        toast.success("New alumni record created successfully")
+        await createAlumni(formData)
+        toast.success("Alumni created successfully")
       }
-
+      
       // Redirect to alumni list
       router.push("/dashboard/alumni")
     } catch (error) {
       console.error("Error saving alumni:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to save alumni record")
+      toast.error(error.message || "Failed to save alumni")
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleTabChange = (value) => {
+    setActiveTab(value)
+  }
+
+  const handlePrevious = () => {
+    if (activeTab === "qualifications") {
+      setActiveTab("basic-info")
+    } else if (activeTab === "employment") {
+      setActiveTab("qualifications")
+    } else if (activeTab === "higher-education") {
+      setActiveTab("employment")
+    }
+  }
+
+  const handleNext = () => {
+    if (activeTab === "basic-info") {
+      setActiveTab("qualifications")
+    } else if (activeTab === "qualifications") {
+      setActiveTab("employment")
+    } else if (activeTab === "employment") {
+      setActiveTab("higher-education")
+    }
+  }
+
+  if (isLoading && isEdit) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit}>
-      <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="basic">Basic Information</TabsTrigger>
-          <TabsTrigger value="qualifications">Qualifications</TabsTrigger>
-          <TabsTrigger value="employment">Employment & Education</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="basic">
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Enter the basic details of the alumni</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  Full Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="Enter full name as per marksheet"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="academicUnit">
-                  Academic Unit <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.academicUnit}
-                  onValueChange={(value) => handleSelectChange(value, "academicUnit")}
-                >
-                  <SelectTrigger id="academicUnit">
-                    <SelectValue placeholder="Select academic unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Himalayan School of Science/Engineering and Technology">
-                      Himalayan School of Science/Engineering and Technology
-                    </SelectItem>
-                    <SelectItem value="Himalayan Institute of Medical Sciences (Medical)">
-                      Himalayan Institute of Medical Sciences (Medical)
-                    </SelectItem>
-                    <SelectItem value="Himalayan Institute of Medical Sciences (Paramedical)">
-                      Himalayan Institute of Medical Sciences (Paramedical)
-                    </SelectItem>
-                    <SelectItem value="Himalayan Institute of Medical Sciences (Community Medicine)">
-                      Himalayan Institute of Medical Sciences (Community Medicine)
-                    </SelectItem>
-                    <SelectItem value="Himalayan Institute of Medical Sciences (Hospital Administration)">
-                      Himalayan Institute of Medical Sciences (Hospital Administration)
-                    </SelectItem>
-                    <SelectItem value="Himalayan Institute of Medical Sciences (Yoga Sciences & Holistic Health)">
-                      Himalayan Institute of Medical Sciences (Yoga Sciences & Holistic Health)
-                    </SelectItem>
-                    <SelectItem value="Himalayan Institute of Medical Sciences (Biosciences)">
-                      Himalayan Institute of Medical Sciences (Biosciences)
-                    </SelectItem>
-                    <SelectItem value="Himalayan School of Management Studies">
-                      Himalayan School of Management Studies
-                    </SelectItem>
-                    <SelectItem value="Himalayan College of Nursing">Himalayan College of Nursing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="program">
-                  Program <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="program"
-                  name="program"
-                  placeholder="e.g. B.Sc, MBBS, MSc, B.Tech, BCA, MCA, Ph.D"
-                  value={formData.program}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="passingYear">
-                  Passing Year <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.passingYear}
-                  onValueChange={(value) => handleSelectChange(value, "passingYear")}
-                >
-                  <SelectTrigger id="passingYear">
-                    <SelectValue placeholder="Select passing year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2016-17">2016-17</SelectItem>
-                    <SelectItem value="2017-18">2017-18</SelectItem>
-                    <SelectItem value="2018-19">2018-19</SelectItem>
-                    <SelectItem value="2019-20">2019-20</SelectItem>
-                    <SelectItem value="2020-21">2020-21</SelectItem>
-                    <SelectItem value="2021-22">2021-22</SelectItem>
-                    <SelectItem value="2022-23">2022-23</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="registrationNumber">
-                  Registration Number <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="registrationNumber"
-                  name="registrationNumber"
-                  placeholder="e.g. DD2017304002"
-                  value={formData.registrationNumber}
-                  onChange={handleChange}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">Enter the registration number as per university records</p>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" type="button" onClick={() => router.push("/dashboard/alumni")}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={() => document.getElementById("qualifications-tab")?.click()}>
-                Next
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="qualifications" id="qualifications-tab">
-          <Card>
-            <CardHeader>
-              <CardTitle>Qualifications</CardTitle>
-              <CardDescription>Enter details about qualified exams</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="qualifiedExams.examName">Qualified Exams</Label>
-                <Select
-                  value={formData.qualifiedExams.examName}
-                  onValueChange={(value) => handleSelectChange(value, "qualifiedExams.examName")}
-                >
-                  <SelectTrigger id="qualifiedExams.examName">
-                    <SelectValue placeholder="Select exam" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Not applicable">Not applicable</SelectItem>
-                    <SelectItem value="NET">NET</SelectItem>
-                    <SelectItem value="SLET">SLET</SelectItem>
-                    <SelectItem value="GATE">GATE</SelectItem>
-                    <SelectItem value="GMAT">GMAT</SelectItem>
-                    <SelectItem value="GPAT">GPAT</SelectItem>
-                    <SelectItem value="CAT">CAT</SelectItem>
-                    <SelectItem value="GRE">GRE</SelectItem>
-                    <SelectItem value="TOEFL">TOEFL</SelectItem>
-                    <SelectItem value="PLAB">PLAB</SelectItem>
-                    <SelectItem value="USMLE">USMLE</SelectItem>
-                    <SelectItem value="AYUSH">AYUSH</SelectItem>
-                    <SelectItem value="Civil Services">Civil Services</SelectItem>
-                    <SelectItem value="Defense">Defense</SelectItem>
-                    <SelectItem value="UPSC">UPSC</SelectItem>
-                    <SelectItem value="State government examinations">State government examinations</SelectItem>
-                    <SelectItem value="PG-NEET">PG-NEET</SelectItem>
-                    <SelectItem value="AIIMSPGET">AIIMSPGET</SelectItem>
-                    <SelectItem value="JIPMER Entrance Test">JIPMER Entrance Test</SelectItem>
-                    <SelectItem value="PGIMER Entrance Test">PGIMER Entrance Test</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.qualifiedExams.examName !== "Not applicable" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="qualifiedExams.rollNumber">Roll Number</Label>
-                    <Input
-                      id="qualifiedExams.rollNumber"
-                      name="qualifiedExams.rollNumber"
-                      placeholder="Enter roll number of exam"
-                      value={formData.qualifiedExams.rollNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="qualifiedExams.certificate">Certificate</Label>
-                    <Input
-                      id="qualifiedExams.certificate"
-                      type="file"
-                      onChange={(e) => handleFileChange(e, "qualifiedExams.certificateUrl")}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Upload passing certificate/document (e.g. score card)
-                    </p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" type="button" onClick={() => document.getElementById("basic-tab")?.click()}>
-                Previous
-              </Button>
-              <Button type="button" onClick={() => document.getElementById("employment-tab")?.click()}>
-                Next
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="employment" id="employment-tab">
-          <Card>
-            <CardHeader>
-              <CardTitle>Employment & Higher Education</CardTitle>
-              <CardDescription>Enter details about employment status and higher education</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Employment Details</h3>
-
+      <Card>
+        <CardHeader>
+          <CardTitle>{isEdit ? "Edit Alumni" : "Add New Alumni"}</CardTitle>
+          <CardDescription>
+            {isEdit
+              ? "Update alumni information in the system"
+              : "Add a new alumni to the HSST database"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic-info">Basic Info</TabsTrigger>
+              <TabsTrigger value="qualifications">Qualifications</TabsTrigger>
+              <TabsTrigger value="employment">Employment</TabsTrigger>
+              <TabsTrigger value="higher-education">Higher Education</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="basic-info" className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="employment.type">Employment Status</Label>
+                  <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registrationNumber">Registration Number <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="registrationNumber"
+                    name="registrationNumber"
+                    value={formData.registrationNumber}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="program">Program <span className="text-red-500">*</span></Label>
                   <Select
-                    value={formData.employment.type}
-                    onValueChange={(value) => handleSelectChange(value, "employment.type")}
+                    value={formData.program}
+                    onValueChange={(value) => handleSelectChange(value, "program")}
+                    required
                   >
-                    <SelectTrigger id="employment.type">
-                      <SelectValue placeholder="Select status" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select program" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Employed">Employed in organization/company</SelectItem>
-                      <SelectItem value="Self-employed">Self-employed</SelectItem>
-                      <SelectItem value="Unemployed">Unemployed</SelectItem>
+                      <SelectItem value="B.Tech (CSE)">B.Tech (CSE)</SelectItem>
+                      <SelectItem value="B.Tech (ME)">B.Tech (ME)</SelectItem>
+                      <SelectItem value="B.Tech (CE)">B.Tech (CE)</SelectItem>
+                      <SelectItem value="B.Tech (EE)">B.Tech (EE)</SelectItem>
+                      <SelectItem value="M.Tech (CSE)">M.Tech (CSE)</SelectItem>
+                      <SelectItem value="M.Tech (ME)">M.Tech (ME)</SelectItem>
+                      <SelectItem value="M.Tech (CE)">M.Tech (CE)</SelectItem>
+                      <SelectItem value="M.Tech (EE)">M.Tech (EE)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {formData.employment.type === "Employed" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="employment.employerName">Employer Name</Label>
-                      <Input
-                        id="employment.employerName"
-                        name="employment.employerName"
-                        placeholder="Name of the employer"
-                        value={formData.employment.employerName}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="employment.employerContact">Employer Contact</Label>
-                      <Input
-                        id="employment.employerContact"
-                        name="employment.employerContact"
-                        placeholder="Contact details of employer"
-                        value={formData.employment.employerContact}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="employment.employerEmail">Employer Email</Label>
-                      <Input
-                        id="employment.employerEmail"
-                        name="employment.employerEmail"
-                        type="email"
-                        placeholder="Email of employer"
-                        value={formData.employment.employerEmail}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="employment.document">Supporting Document</Label>
-                      <Input
-                        id="employment.document"
-                        type="file"
-                        onChange={(e) => handleFileChange(e, "employment.documentUrl")}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Attach relevant document (like copy of Offer letter/ID card)
-                      </p>
-                    </div>
-                  </>
-                )}
-
-                {formData.employment.type === "Self-employed" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="employment.selfEmploymentDetails">Self-employment Details</Label>
-                      <Textarea
-                        id="employment.selfEmploymentDetails"
-                        name="employment.selfEmploymentDetails"
-                        placeholder="Details of self employment with contact details"
-                        value={formData.employment.selfEmploymentDetails}
-                        onChange={handleChange}
-                        rows={4}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="employment.document">Supporting Document</Label>
-                      <Input
-                        id="employment.document"
-                        type="file"
-                        onChange={(e) => handleFileChange(e, "employment.documentUrl")}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Attach document like registration no. of firm or any other details
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Higher Education</h3>
-                <p className="text-sm text-muted-foreground">
-                  Applicable for students who have progressed to higher education
-                </p>
-
                 <div className="space-y-2">
-                  <Label htmlFor="higherEducation.institutionName">Institution Name</Label>
+                  <Label htmlFor="passingYear">Passing Year <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={formData.passingYear}
+                    onValueChange={(value) => handleSelectChange(value, "passingYear")}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contactDetails.email">Email</Label>
                   <Input
-                    id="higherEducation.institutionName"
-                    name="higherEducation.institutionName"
-                    placeholder="Name of institution joined"
-                    value={formData.higherEducation.institutionName}
+                    id="contactDetails.email"
+                    name="contactDetails.email"
+                    type="email"
+                    value={formData.contactDetails.email || ""}
                     onChange={handleChange}
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="higherEducation.programName">Program Name</Label>
+                  <Label htmlFor="contactDetails.phone">Phone</Label>
                   <Input
-                    id="higherEducation.programName"
-                    name="higherEducation.programName"
-                    placeholder="Name of program admitted to"
-                    value={formData.higherEducation.programName}
+                    id="contactDetails.phone"
+                    name="contactDetails.phone"
+                    value={formData.contactDetails.phone || ""}
                     onChange={handleChange}
                   />
                 </div>
-
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="contactDetails.address">Address</Label>
+                <Textarea
+                  id="contactDetails.address"
+                  name="contactDetails.address"
+                  value={formData.contactDetails.address || ""}
+                  onChange={handleChange}
+                  rows={3}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="basicInfoImage">Upload ID Proof (optional)</Label>
+                <Input
+                  id="basicInfoImage"
+                  name="basicInfoImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="qualifications" className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="higherEducation.document">Supporting Document</Label>
+                  <Label htmlFor="qualifications.examName">Exam Name</Label>
                   <Input
-                    id="higherEducation.document"
-                    type="file"
-                    onChange={(e) => handleFileChange(e, "higherEducation.documentUrl")}
+                    id="qualifications.examName"
+                    name="qualifications.examName"
+                    value={formData.qualifications.examName || ""}
+                    onChange={handleChange}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Upload admission letter/program ID card or any other supporting document
-                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qualifications.rollNumber">Roll Number</Label>
+                  <Input
+                    id="qualifications.rollNumber"
+                    name="qualifications.rollNumber"
+                    value={formData.qualifications.rollNumber || ""}
+                    onChange={handleChange}
+                  />
                 </div>
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => document.getElementById("qualifications-tab")?.click()}
-              >
-                Previous
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isEditing ? "Updating..." : "Saving..."}
-                  </>
-                ) : isEditing ? (
-                  "Update Alumni"
-                ) : (
-                  "Save Alumni"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              
+              <div className="space-y-2">
+                <Label htmlFor="qualifications.certificate">Certificate</Label>
+                <Input
+                  id="qualifications.certificate"
+                  name="qualifications.certificate"
+                  value={formData.qualifications.certificate || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="qualificationImage">Upload Certificate (optional)</Label>
+                <Input
+                  id="qualificationImage"
+                  name="qualificationImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="employment" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="employment.type">Employment Type</Label>
+                <Select
+                  value={formData.employment.type || ""}
+                  onValueChange={(value) => handleSelectChange(value, "employment.type")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Employed">Employed</SelectItem>
+                    <SelectItem value="Self-Employed">Self-Employed</SelectItem>
+                    <SelectItem value="Unemployed">Unemployed</SelectItem>
+                    <SelectItem value="Student">Student</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="employment.document">Employment Document</Label>
+                <Input
+                  id="employment.document"
+                  name="employment.document"
+                  value={formData.employment.document || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="employmentImage">Upload Employment Proof (optional)</Label>
+                <Input
+                  id="employmentImage"
+                  name="employmentImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="higher-education" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="higherEducation.institutionName">Institution Name</Label>
+                <Input
+                  id="higherEducation.institutionName"
+                  name="higherEducation.institutionName"
+                  value={formData.higherEducation.institutionName || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="higherEducation.program">Program</Label>
+                <Input
+                  id="higherEducation.program"
+                  name="higherEducation.program"
+                  value={formData.higherEducation.program || ""}
+                  onChange={handleChange}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          {activeTab !== "basic-info" ? (
+            <Button type="button" variant="outline" onClick={handlePrevious}>
+              Previous
+            </Button>
+          ) : (
+            <div></div>
+          )}
+          
+          {activeTab !== "higher-education" ? (
+            <Button type="button" onClick={handleNext}>
+              Next
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Submit"
+              )}
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
     </form>
   )
 }
 
+export default AlumniForm

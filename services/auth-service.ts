@@ -1,330 +1,162 @@
-import api, { checkBackendStatus } from "./backend-service"
 import axios from "axios"
 
-// Define isDevelopment and simulateApiDelay
-const isDevelopment = process.env.NODE_ENV === "development"
-const simulateApiDelay = () => new Promise((resolve) => setTimeout(resolve, 500))
+const isBackendAvailable = process.env.NEXT_PUBLIC_BACKEND_AVAILABLE === "true"
 
-// Get stored users from localStorage or initialize with default admin
-const getStoredUsers = () => {
-  try {
-    const storedUsers = localStorage.getItem("mockUsers")
-    if (storedUsers) {
-      return JSON.parse(storedUsers)
+// Function to register a new user
+export const registerUser = async (userData: any) => {
+  if (isBackendAvailable) {
+    // Backend is available, use real API
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, userData, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000, // 10 seconds timeout
+      })
+      return response.data
+    } catch (error: any) {
+      console.error("Registration error:", error)
+      throw error
     }
-  } catch (error) {
-    console.error("Error parsing stored users:", error)
-  }
-
-  // Default admin user
-  const defaultUsers = [
-    {
-      _id: "1",
-      name: "Admin User",
-      email: "admin@example.com",
-      password: "password", // In a real app, this would be hashed
-      role: "admin",
-      token: "mock-jwt-token-1",
-      settings: {
-        notifications: {
-          email: true,
-          browser: false,
-        },
-        privacy: {
-          showEmail: false,
-          showProfile: true,
-        },
-        appearance: {
-          theme: "system",
-          fontSize: "medium",
-        },
-      },
-    },
-  ]
-
-  localStorage.setItem("mockUsers", JSON.stringify(defaultUsers))
-  return defaultUsers
-}
-
-// Save users to localStorage
-const saveUsersToLocalStorage = (users) => {
-  try {
-    localStorage.setItem("mockUsers", JSON.stringify(users))
-  } catch (error) {
-    console.error("Error saving users to localStorage:", error)
+  } else {
+    // No backend, use mock data
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          message: "User registered successfully (mock)",
+          user: {
+            id: "mockUserId",
+            email: userData.email,
+            username: userData.username,
+          },
+        }
+        resolve(mockResponse)
+      }, 500)
+    })
   }
 }
 
-export const login = async (email, password) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
+// Function to log in an existing user
+export const loginUser = async (credentials: any) => {
+  if (isBackendAvailable) {
+    // Backend is available, use real API
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, credentials, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000, // 10 seconds timeout
+      })
 
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-        console.log("Attempting login with API URL:", API_URL)
+      // Store the token in localStorage
+      localStorage.setItem("token", response.data.token)
 
-        const response = await axios({
-          method: "post",
-          url: `${API_URL}/auth/login`,
-          data: {
-            email,
-            password,
-          },
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 10000, // 10 seconds timeout
-        })
+      // Store the user data in localStorage
+      localStorage.setItem("user", JSON.stringify(response.data.user))
 
-        console.log("Login response:", response.data)
-
-        // Store user and token in localStorage
-        localStorage.setItem("user", JSON.stringify(response.data))
-        localStorage.setItem("token", response.data.token)
-
-        return response.data
-      } catch (error) {
-        // Handle specific error cases
-        if (axios.isAxiosError(error) && error.response) {
-          console.error("Login error response:", error.response.data)
-          throw new Error(error.response.data.message || "Invalid email or password")
-        }
-        throw error
-      }
-    } else {
-      // Backend is not available, use mock data
-      console.log("Backend unavailable: Using mock login")
-
-      const mockUsers = getStoredUsers()
-      const user = mockUsers.find((u) => u.email === email)
-
-      if (user) {
-        // In a real app, we would compare hashed passwords
-        if (user.password !== password && password !== "anypassword") {
-          throw new Error("Invalid email or password")
-        }
-
-        // Don't send password to the frontend
-        const { password: _, ...userWithoutPassword } = user
-
-        // Store user and token in localStorage
-        localStorage.setItem("user", JSON.stringify(userWithoutPassword))
-        localStorage.setItem("token", userWithoutPassword.token)
-
-        return userWithoutPassword
-      }
-
-      // If user not found but we're in development, create a new user
-      if (process.env.NODE_ENV === "development") {
-        const newUser = {
-          _id: Math.random().toString(36).substring(2, 9),
-          name: email.split("@")[0],
-          email: email,
-          password: password,
-          role: "admin",
-          token: `mock-jwt-token-${Math.random().toString(36).substring(2, 9)}`,
-          settings: {
-            notifications: {
-              email: true,
-              browser: false,
-            },
-            privacy: {
-              showEmail: false,
-              showProfile: true,
-            },
-            appearance: {
-              theme: "system",
-              fontSize: "medium",
+      return response.data
+    } catch (error: any) {
+      console.error("Login error:", error)
+      throw error
+    }
+  } else {
+    // No backend, use mock data
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          message: "User logged in successfully (mock)",
+          token: "mockToken",
+          user: {
+            id: "mockUserId",
+            email: credentials.email,
+            username: "mockUser",
+            settings: {
+              theme: "light",
+              notificationsEnabled: true,
             },
           },
         }
 
-        // Add to mock users
-        mockUsers.push(newUser)
-        saveUsersToLocalStorage(mockUsers)
+        // Store mock data in localStorage
+        localStorage.setItem("token", mockResponse.token)
+        localStorage.setItem("user", JSON.stringify(mockResponse.user))
 
-        // Don't send password to the frontend
-        const { password: _, ...userWithoutPassword } = newUser
-
-        // Store user and token in localStorage
-        localStorage.setItem("user", JSON.stringify(userWithoutPassword))
-        localStorage.setItem("token", userWithoutPassword.token)
-
-        return userWithoutPassword
-      }
-
-      throw new Error("Invalid email or password")
-    }
-  } catch (error) {
-    console.error("Login error:", error)
-    throw error
+        resolve(mockResponse)
+      }, 500)
+    })
   }
 }
 
-export const register = async (name, email, password) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-        console.log("Attempting registration with API URL:", API_URL)
-
-        const response = await axios({
-          method: "post",
-          url: `${API_URL}/auth/register`,
-          data: {
-            name,
-            email,
-            password,
-          },
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 10000, // 10 seconds timeout
-        })
-
-        console.log("Registration successful:", response.data)
-
-        // Store user and token in localStorage
-        localStorage.setItem("user", JSON.stringify(response.data))
-        localStorage.setItem("token", response.data.token)
-
-        return response.data
-      } catch (error) {
-        console.error("Registration error:", error)
-        if (axios.isAxiosError(error) && error.response) {
-          console.error("Registration error details:", error.response.data)
-          throw new Error(error.response.data.message || "Registration failed")
-        }
-        throw new Error("Registration failed. Please try again.")
-      }
-    } else {
-      // Backend is not available, use mock data
-      console.log("Backend unavailable: Using mock registration")
-
-      const mockUsers = getStoredUsers()
-
-      // Check if user already exists
-      if (mockUsers.some((u) => u.email === email)) {
-        throw new Error("User with this email already exists")
-      }
-
-      const newUser = {
-        _id: Math.random().toString(36).substring(2, 9),
-        name,
-        email,
-        password, // In a real app, this would be hashed
-        role: "admin",
-        token: `mock-jwt-token-${Math.random().toString(36).substring(2, 9)}`,
-        settings: {
-          notifications: {
-            email: true,
-            browser: false,
-          },
-          privacy: {
-            showEmail: false,
-            showProfile: true,
-          },
-          appearance: {
-            theme: "system",
-            fontSize: "medium",
-          },
-        },
-      }
-
-      // Add to mock users
-      mockUsers.push(newUser)
-      saveUsersToLocalStorage(mockUsers)
-
-      // Don't send password to the frontend
-      const { password: _, ...userWithoutPassword } = newUser
-
-      // Store user and token in localStorage
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
-      localStorage.setItem("token", userWithoutPassword.token)
-
-      return userWithoutPassword
-    }
-  } catch (error) {
-    console.error("Register error:", error)
-    throw error
-  }
-}
-
-export const logout = () => {
-  // Clear user and token from localStorage
-  localStorage.removeItem("user")
+// Function to log out the user
+export const logoutUser = () => {
   localStorage.removeItem("token")
+  localStorage.removeItem("user")
 }
 
+// Function to get the user profile
 export const getUserProfile = async () => {
-  try {
-    // For development, use mock data
-    if (isDevelopment) {
-      // Simulate API delay
-      await simulateApiDelay()
+  if (isBackendAvailable) {
+    // Backend is available, use real API
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const token = localStorage.getItem("token")
 
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        return JSON.parse(storedUser)
-      }
+    if (!token) {
+      throw new Error("Authentication required. Please log in again.")
+    }
 
-      return {
-        _id: "1",
-        name: "Admin User",
-        email: "admin@example.com",
-        role: "admin",
-        settings: {
-          notifications: {
-            email: true,
-            browser: false,
-          },
-          privacy: {
-            showEmail: false,
-            showProfile: true,
-          },
-          appearance: {
-            theme: "system",
-            fontSize: "medium",
-          },
+    try {
+      const response = await axios.get(`${API_URL}/auth/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
+        timeout: 10000, // 10 seconds timeout
+      })
+      return response.data
+    } catch (error: any) {
+      console.error("Get profile error:", error)
+      // If token is invalid, remove it
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
       }
+      throw error
     }
-
-    // For production, use real API
-    const response = await api.get("/auth/profile")
-    return response.data
-  } catch (error) {
-    console.error("Get profile error:", error)
-
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.message || "Failed to get user profile")
-    }
-
-    throw new Error("Failed to get user profile. Please try again.")
+  } else {
+    // No backend, use mock data
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const storedUser = localStorage.getItem("user")
+        const mockResponse = storedUser
+          ? JSON.parse(storedUser)
+          : {
+              id: "mockUserId",
+              email: "mock@example.com",
+              username: "mockUser",
+              settings: {
+                theme: "light",
+                notificationsEnabled: true,
+              },
+            }
+        resolve(mockResponse)
+      }, 500)
+    })
   }
 }
 
-export const updateUserProfile = async (userData) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
+// Function to update the user profile
+export const updateUserProfile = async (userData: any) => {
+  if (isBackendAvailable) {
+    // Backend is available, use real API
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const token = localStorage.getItem("token")
 
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-      const token = localStorage.getItem("token")
+    if (!token) {
+      throw new Error("Authentication required. Please log in again.")
+    }
 
-      if (!token) {
-        throw new Error("Authentication required. Please log in again.")
-      }
-
+    try {
       const response = await axios({
         method: "put",
         url: `${API_URL}/auth/profile`,
@@ -336,113 +168,97 @@ export const updateUserProfile = async (userData) => {
         timeout: 10000, // 10 seconds timeout
       })
 
-      console.log("Profile update response:", response.data)
-
       // Update stored user data
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        const user = JSON.parse(storedUser)
-        const updatedUser = { ...user, ...response.data }
-        localStorage.setItem("user", JSON.stringify(updatedUser))
-      }
-
-      // Update token if a new one is returned
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token)
-      }
+      localStorage.setItem("user", JSON.stringify(response.data.user))
 
       return response.data
-    } else {
-      // Backend is not available, simulate successful update
-      console.log("Backend unavailable: Simulating profile update")
-
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        const user = JSON.parse(storedUser)
-        // Update the mock password validation in development mode
-        if (process.env.NODE_ENV === "development" && !(await checkBackendStatus())) {
-          try {
-            const mockUsers = getStoredUsers()
-            const userIndex = mockUsers.findIndex((u) => u._id === user._id)
-
-            if (userIndex !== -1) {
-              // Add password validation when updating password
-              if (userData.newPassword) {
-                // If currentPassword is provided, verify it
-                if (userData.currentPassword && userData.currentPassword !== mockUsers[userIndex].password) {
-                  throw new Error("Current password is incorrect")
-                }
-
-                // Update the password
-                mockUsers[userIndex].password = userData.newPassword
-              }
-
-              // Update other user data
-              mockUsers[userIndex] = {
-                ...mockUsers[userIndex],
-                ...userData,
-                password: userData.newPassword || mockUsers[userIndex].password, // Update password if provided
-              }
-              saveUsersToLocalStorage(mockUsers)
-            }
-
-            const { password: _, ...userWithoutPassword } = user
-
-            // Return updated user without password
-            return {
-              ...userWithoutPassword,
-              ...userData,
-            }
-          } catch (error) {
-            console.error("Update profile error in development:", error)
-            throw error
-          }
-        }
-        const updatedUser = {
-          ...user,
-          ...userData,
-        }
-
-        localStorage.setItem("user", JSON.stringify(updatedUser))
-
-        // Also update in mockUsers
-        const mockUsers = getStoredUsers()
-        const userIndex = mockUsers.findIndex((u) => u._id === updatedUser._id)
-
-        if (userIndex !== -1) {
-          mockUsers[userIndex] = {
-            ...mockUsers[userIndex],
-            ...userData,
-            password: userData.newPassword || mockUsers[userIndex].password, // Update password if provided
-          }
-          saveUsersToLocalStorage(mockUsers)
-        }
-
-        return updatedUser
-      }
-
-      throw new Error("User not found")
+    } catch (error: any) {
+      console.error("Update profile error:", error)
+      throw error
     }
-  } catch (error) {
-    console.error("Update profile error:", error)
-    throw error
+  } else {
+    // No backend, use mock data
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const storedUser = localStorage.getItem("user")
+        if (storedUser) {
+          const user = JSON.parse(storedUser)
+          const updatedUser = { ...user, ...userData }
+          localStorage.setItem("user", JSON.stringify(updatedUser))
+          resolve(updatedUser)
+        } else {
+          const mockResponse = {
+            id: "mockUserId",
+            email: "mock@example.com",
+            username: "mockUser",
+            ...userData,
+            settings: {
+              theme: "light",
+              notificationsEnabled: true,
+            },
+          }
+          localStorage.setItem("user", JSON.stringify(mockResponse))
+          resolve(mockResponse)
+        }
+      }, 500)
+    })
   }
 }
 
-export const updateUserSettings = async (settings) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
+// Function to update the user password
+export const updatePassword = async (passwords: any) => {
+  if (isBackendAvailable) {
+    // Backend is available, use real API
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const token = localStorage.getItem("token")
 
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-      const token = localStorage.getItem("token")
+    if (!token) {
+      throw new Error("Authentication required. Please log in again.")
+    }
 
-      if (!token) {
-        throw new Error("Authentication required. Please log in again.")
-      }
+    try {
+      const response = await axios({
+        method: "put",
+        url: `${API_URL}/auth/password`,
+        data: passwords,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 10000, // 10 seconds timeout
+      })
+      return response.data
+    } catch (error: any) {
+      console.error("Update password error:", error)
+      throw error
+    }
+  } else {
+    // No backend, use mock data
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (passwords.newPassword === "success") {
+          const mockResponse = { message: "Password updated successfully (mock)" }
+          resolve(mockResponse)
+        } else {
+          reject("Mock error: Invalid new password")
+        }
+      }, 500)
+    })
+  }
+}
 
+// Function to update user settings
+export const updateUserSettings = async (settings: any) => {
+  if (isBackendAvailable) {
+    // Backend is available, use real API
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const token = localStorage.getItem("token")
+
+    if (!token) {
+      throw new Error("Authentication required. Please log in again.")
+    }
+
+    try {
       const response = await axios({
         method: "put",
         url: `${API_URL}/auth/settings`,
@@ -469,174 +285,50 @@ export const updateUserSettings = async (settings) => {
       }
 
       return response.data
-    } else {
-      // Backend is not available, simulate successful settings update
-      console.log("Backend unavailable: Simulating settings update")
+    } catch (error) {
+      console.error("Settings update error:", error)
 
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        const user = JSON.parse(storedUser)
-
-        // Deep merge settings
-        const updatedUser = {
-          ...user,
-          settings: {
-            ...user.settings,
-            ...settings,
-            // Handle nested objects
-            notifications: settings.notifications
-              ? {
-                  ...user.settings?.notifications,
-                  ...settings.notifications,
-                }
-              : user.settings?.notifications,
-            privacy: settings.privacy
-              ? {
-                  ...user.settings?.privacy,
-                  ...settings.privacy,
-                }
-              : user.settings?.privacy,
-            appearance: settings.appearance
-              ? {
-                  ...user.settings?.appearance,
-                  ...settings.appearance,
-                }
-              : user.settings?.appearance,
-          },
-        }
-
-        localStorage.setItem("user", JSON.stringify(updatedUser))
-
-        // Also update in mockUsers
-        const mockUsers = getStoredUsers()
-        const userIndex = mockUsers.findIndex((u) => u._id === updatedUser._id)
-
-        if (userIndex !== -1) {
-          mockUsers[userIndex] = {
-            ...mockUsers[userIndex],
-            settings: updatedUser.settings,
+      // For development mode, still update local storage even if API fails
+      if (process.env.NODE_ENV === "development") {
+        const storedUser = localStorage.getItem("user")
+        if (storedUser) {
+          const user = JSON.parse(storedUser)
+          // Deep merge settings
+          const updatedUser = {
+            ...user,
+            settings: {
+              ...user.settings,
+              ...settings,
+            },
           }
-          saveUsersToLocalStorage(mockUsers)
-        }
-
-        return { settings: updatedUser.settings }
-      }
-
-      throw new Error("User not found")
-    }
-  } catch (error) {
-    console.error("Update settings error:", error)
-    throw error
-  }
-}
-
-// Add password reset functionality
-export const requestPasswordReset = async (email) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      console.log("Sending password reset request to backend for:", email)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-
-      const response = await axios({
-        method: "post",
-        url: `${API_URL}/auth/forgot-password`,
-        data: { email },
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 10000, // 10 seconds timeout
-      })
-
-      return response.data
-    } else {
-      // Backend is not available, simulate successful request
-      console.log("Backend unavailable: Simulating password reset request for:", email)
-
-      // Simulate API delay
-      await simulateApiDelay()
-
-      // Check if user exists in mock data
-      const mockUsers = getStoredUsers()
-      const user = mockUsers.find((u) => u.email === email)
-
-      if (!user) {
-        // Don't reveal if user exists or not for security
-        return {
-          success: true,
-          message: "If an account with that email exists, we've sent a password reset link.",
+          localStorage.setItem("user", JSON.stringify(updatedUser))
+          return { settings: updatedUser.settings }
         }
       }
 
-      // In a real app, we would generate a token and send an email
-      // For mock purposes, just return success
-      return {
-        success: true,
-        message: "Password reset email sent",
-      }
+      throw error
     }
-  } catch (error) {
-    console.error("Password reset request error:", error)
-
-    // For security reasons, don't reveal if the request failed due to user not existing
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return {
-        success: true,
-        message: "If an account with that email exists, we've sent a password reset link.",
-      }
-    }
-
-    throw error
-  }
-}
-
-// Add reset password functionality
-export const resetPassword = async (token, newPassword) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      console.log("Sending password reset to backend with token:", token)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-
-      const response = await axios({
-        method: "post",
-        url: `${API_URL}/auth/reset-password`,
-        data: { token, newPassword },
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 10000, // 10 seconds timeout
-      })
-
-      return response.data
-    } else {
-      // Backend is not available, simulate successful reset
-      console.log("Backend unavailable: Simulating password reset")
-
-      // Simulate API delay
-      await simulateApiDelay()
-
-      // In a real app, we would validate the token and update the password
-      // For mock purposes, just return success
-      return {
-        success: true,
-        message: "Password has been reset successfully",
-      }
-    }
-  } catch (error) {
-    console.error("Password reset error:", error)
-
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.message || "Failed to reset password")
-    }
-
-    throw error
+  } else {
+    // No backend, use mock data
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const storedUser = localStorage.getItem("user")
+        if (storedUser) {
+          const user = JSON.parse(storedUser)
+          const updatedUser = {
+            ...user,
+            settings: { ...user.settings, ...settings },
+          }
+          localStorage.setItem("user", JSON.stringify(updatedUser))
+          resolve({ settings: updatedUser.settings })
+        } else {
+          const mockResponse = {
+            settings: { ...settings },
+          }
+          resolve(mockResponse)
+        }
+      }, 500)
+    })
   }
 }
 

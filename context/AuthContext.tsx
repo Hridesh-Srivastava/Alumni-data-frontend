@@ -2,14 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { toast } from "sonner"
-import {
-  login as loginApi,
-  register as registerApi,
-  logout as logoutApi,
-  updateUserProfile,
-  updateUserSettings,
-} from "@/services/auth-service"
-import { checkBackendStatus } from "@/services/utils-service"
+import axios from "axios"
 
 interface User {
   _id: string
@@ -83,24 +76,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      // Check if backend is available before attempting login
-      const backendAvailable = await checkBackendStatus()
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      const response = await loginApi(email, password)
-      setUser(response)
-      setToken(response.token)
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password })
 
-      localStorage.setItem("user", JSON.stringify(response))
-      localStorage.setItem("token", response.token)
+      // Extract user data and token
+      const userData = response.data
+      const authToken = userData.token
 
-      toast.success(`${backendAvailable ? "" : "[Development Mode] "}Logged in successfully`)
-      return response
+      // Remove token from user object to avoid duplication
+      const { token: _, ...userWithoutToken } = userData
+
+      setUser(userWithoutToken)
+      setToken(authToken)
+
+      localStorage.setItem("user", JSON.stringify(userWithoutToken))
+      localStorage.setItem("token", authToken)
+
+      toast.success("Logged in successfully")
+      return
     } catch (error) {
       console.error("Login error:", error)
 
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error) && error.response) {
         toast.error("Login failed", {
-          description: error.message,
+          description: error.response.data.message || "Invalid credentials",
         })
       } else {
         toast.error("Login failed", {
@@ -114,22 +114,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await registerApi(name, email, password)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      setUser(response)
-      setToken(response.token)
+      const response = await axios.post(`${API_URL}/auth/register`, { name, email, password })
 
-      localStorage.setItem("user", JSON.stringify(response))
-      localStorage.setItem("token", response.token)
+      // Extract user data and token
+      const userData = response.data
+      const authToken = userData.token
+
+      // Remove token from user object to avoid duplication
+      const { token: _, ...userWithoutToken } = userData
+
+      setUser(userWithoutToken)
+      setToken(authToken)
+
+      localStorage.setItem("user", JSON.stringify(userWithoutToken))
+      localStorage.setItem("token", authToken)
 
       toast.success("Registration successful")
-      return response
+      return
     } catch (error) {
       console.error("Register error:", error)
 
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error) && error.response) {
         toast.error("Registration failed", {
-          description: error.message,
+          description: error.response.data.message || "User already exists",
         })
       } else {
         toast.error("Registration failed", {
@@ -142,58 +151,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const logout = () => {
-    try {
-      // Call logout API (this is now handled in auth-service.ts)
-      logoutApi()
+    // Clear state
+    setUser(null)
+    setToken(null)
 
-      // Clear state
-      setUser(null)
-      setToken(null)
+    // Clear localStorage
+    localStorage.removeItem("user")
+    localStorage.removeItem("token")
 
-      toast.success("Logged out successfully")
-
-      // Force page reload to clear any in-memory state
-      window.location.href = "/"
-    } catch (error) {
-      console.error("Logout error:", error)
-
-      // Even if there's an error, we should still clear the local state
-      setUser(null)
-      setToken(null)
-
-      // Force page reload to clear any in-memory state
-      window.location.href = "/"
-    }
+    toast.success("Logged out successfully")
   }
 
   const updateProfile = async (userData: any) => {
     try {
-      // If updating password, send both new password and current password
-      if (userData.password && !userData.currentPassword) {
-        throw new Error("Current password is required to change password")
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.")
       }
 
-      const response = await updateUserProfile(userData)
-      setUser(response)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      // Update stored user data
-      localStorage.setItem("user", JSON.stringify(response))
+      const response = await axios.put(`${API_URL}/auth/profile`, userData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
-      // Update token if a new one is returned
-      if (response.token) {
-        setToken(response.token)
-        localStorage.setItem("token", response.token)
-      }
+      // Extract updated user data and possibly new token
+      const updatedUserData = response.data
+      const newToken = updatedUserData.token || token
 
-      const backendAvailable = await checkBackendStatus()
-      toast.success(`${backendAvailable ? "" : "[Development Mode] "}Profile updated successfully`)
-      return response
+      // Remove token from user object to avoid duplication
+      const { token: _, ...userWithoutToken } = updatedUserData
+
+      setUser(userWithoutToken)
+      setToken(newToken)
+
+      localStorage.setItem("user", JSON.stringify(userWithoutToken))
+      localStorage.setItem("token", newToken)
+
+      toast.success("Profile updated successfully")
+      return
     } catch (error) {
       console.error("Update profile error:", error)
 
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error) && error.response) {
         toast.error("Failed to update profile", {
-          description: error.message,
+          description: error.response.data.message || "An error occurred",
         })
       } else {
         toast.error("Failed to update profile", {
@@ -207,13 +211,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const updateSettings = async (settings: any) => {
     try {
-      const response = await updateUserSettings(settings)
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.")
+      }
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+
+      // Fix: Properly structure the settings object
+      const response = await axios.put(
+        `${API_URL}/auth/settings`,
+        { settings },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
 
       // Update user with new settings
       if (user) {
         const updatedUser = {
           ...user,
-          settings: response.settings,
+          settings: response.data.settings,
         }
 
         setUser(updatedUser)
@@ -221,13 +241,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       toast.success("Settings updated successfully")
-      return response
+      return response.data
     } catch (error) {
       console.error("Update settings error:", error)
 
-      if (error instanceof Error) {
+      // Even if API call fails, update local state for better UX
+      if (process.env.NODE_ENV === "development" && user) {
+        // Deep merge settings
+        const updatedUser = {
+          ...user,
+          settings: {
+            ...user.settings,
+            ...settings,
+          },
+        }
+
+        setUser(updatedUser)
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+
+        // Show warning instead of error
+        toast.warning("Settings saved locally (backend unavailable)")
+        return { settings: updatedUser.settings }
+      }
+
+      if (axios.isAxiosError(error) && error.response) {
         toast.error("Failed to update settings", {
-          description: error.message,
+          description: error.response.data.message || "An error occurred",
         })
       } else {
         toast.error("Failed to update settings", {

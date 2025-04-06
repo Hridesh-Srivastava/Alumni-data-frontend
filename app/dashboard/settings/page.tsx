@@ -88,7 +88,14 @@ export default function SettingsPage() {
 
       toast.success("Notification settings saved")
     } catch (error) {
+      console.error("Failed to save notification settings:", error)
       toast.error("Failed to save notification settings")
+
+      // Revert to previous state
+      if (user?.settings?.notifications) {
+        setEmailNotifications(user.settings.notifications.email || false)
+        setBrowserNotifications(user.settings.notifications.browser || false)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -107,7 +114,14 @@ export default function SettingsPage() {
 
       toast.success("Privacy settings saved")
     } catch (error) {
+      console.error("Failed to save privacy settings:", error)
       toast.error("Failed to save privacy settings")
+
+      // Revert to previous state
+      if (user?.settings?.privacy) {
+        setShowEmail(user.settings.privacy.showEmail || false)
+        setShowProfile(user.settings.privacy.showProfile || true)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -135,7 +149,14 @@ export default function SettingsPage() {
         document.documentElement.classList.toggle("dark", prefersDark)
       }
     } catch (error) {
+      console.error("Failed to save appearance settings:", error)
       toast.error("Failed to save appearance settings")
+
+      // Revert to previous state
+      if (user?.settings?.appearance) {
+        setTheme(user.settings.appearance.theme || "system")
+        setFontSize(user.settings.appearance.fontSize || "medium")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -151,8 +172,6 @@ export default function SettingsPage() {
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
-
-        
 
         <TabsContent value="privacy" className="space-y-6">
           <div className="bg-card rounded-lg p-6 shadow-sm">

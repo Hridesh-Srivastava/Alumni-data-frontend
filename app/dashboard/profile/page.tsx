@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
@@ -24,12 +22,12 @@ export default function ProfilePage() {
     confirmPassword: "",
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handlePersonalInfoSubmit = async (e: React.FormEvent) => {
+  const handlePersonalInfoSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
 
@@ -47,7 +45,7 @@ export default function ProfilePage() {
     }
   }
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault()
 
     // Basic validations
@@ -69,9 +67,10 @@ export default function ProfilePage() {
     setIsLoading(true)
 
     try {
+      // Send both current and new password
       await updateProfile({
-        password: formData.newPassword,
         currentPassword: formData.currentPassword,
+        password: formData.newPassword,
       })
 
       toast.success("Password changed successfully")

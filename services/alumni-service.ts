@@ -123,7 +123,8 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
   }
 }
 
-export const getAlumniById = async (id) => {
+// Function to fetch a single alumni by ID
+export const getAlumniById = async (id, token) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -151,6 +152,7 @@ export const getAlumniById = async (id) => {
   }
 }
 
+// Function to create a new alumni
 export const createAlumni = async (alumniData) => {
   try {
     // Always set academicUnit to HSST
@@ -234,16 +236,7 @@ export const createAlumni = async (alumniData) => {
           return response.data
         } else {
           // No files, use regular JSON request
-          const response = await axios({
-            method: "post",
-            url: `${API_URL}/alumni`,
-            data: alumniData,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            timeout: 15000, // 15 seconds timeout
-          })
+          const response = await api.post("/alumni", alumniData)
 
           console.log("Alumni created successfully:", response.data)
 
@@ -319,7 +312,8 @@ function addAlumniToLocalStorage(alumniData) {
   }
 }
 
-export const updateAlumni = async (id, alumniData) => {
+// Function to update an existing alumni
+export const updateAlumni = async (id, alumniData, token) => {
   try {
     // Always set academicUnit to HSST
     alumniData.academicUnit = "Himalayan School of Science and Technology"
@@ -332,7 +326,6 @@ export const updateAlumni = async (id, alumniData) => {
       // Handle file uploads if present
       if (alumniData.basicInfoImage || alumniData.qualificationImage || alumniData.employmentImage) {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-        const token = localStorage.getItem("token")
 
         if (!token) {
           throw new Error("Authentication required. Please log in again.")
@@ -449,7 +442,8 @@ export const updateAlumni = async (id, alumniData) => {
   }
 }
 
-export const deleteAlumni = async (id) => {
+// Function to delete an alumni
+export const deleteAlumni = async (id, token) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -488,45 +482,8 @@ export const deleteAlumni = async (id) => {
   }
 }
 
-export const searchAlumni = async (query) => {
-  try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      const url = `/alumni/search?query=${encodeURIComponent(query)}`
-
-      const response = await api.get(url)
-      return response.data
-    } else {
-      // Backend is not available, use mock data
-      console.log("Backend unavailable: Searching alumni in localStorage")
-
-      const mockAlumni = getStoredAlumni()
-
-      // Filter for HSST engineering department
-      let filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "Himalayan School of Science and Technology")
-
-      // Filter by search query
-      if (query) {
-        filteredAlumni = filteredAlumni.filter(
-          (a) =>
-            a.name?.toLowerCase().includes(query.toLowerCase()) ||
-            a.registrationNumber?.toLowerCase().includes(query.toLowerCase()) ||
-            a.program?.toLowerCase().includes(query.toLowerCase()),
-        )
-      }
-
-      return filteredAlumni
-    }
-  } catch (error) {
-    console.error("Error searching alumni:", error)
-    throw error
-  }
-}
-
-export const getStats = async () => {
+// Fix for the stats API endpoint issue
+export const getStats = async (token) => {
   try {
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -535,12 +492,18 @@ export const getStats = async () => {
       // Backend is available, use real API
       console.log("Fetching stats from backend API")
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
-      const token = localStorage.getItem("token")
+
+      // Important fix: Use the correct endpoint for stats
+      // The issue was that the route handler for /stats is defined before /search
+      // So we need to use a different URL pattern to avoid the conflict
+      const statsUrl = `${API_URL}/alumni/stats`
+
+      console.log("Stats URL:", statsUrl)
 
       // Use direct axios call with proper authorization
       const response = await axios({
         method: "get",
-        url: `${API_URL}/alumni/stats`,
+        url: statsUrl,
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
@@ -618,4 +581,3 @@ export const getStats = async () => {
     }
   }
 }
-
