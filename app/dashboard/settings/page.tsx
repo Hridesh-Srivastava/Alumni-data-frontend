@@ -146,52 +146,13 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
       <p className="text-muted-foreground mb-6">Manage your application settings</p>
 
-      <Tabs defaultValue="notifications">
+      <Tabs defaultValue="privacy">
         <TabsList className="mb-6">
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="notifications" className="space-y-6">
-          <div className="bg-card rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
-            <p className="text-muted-foreground mb-6">Manage how you receive notifications</p>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="email-notifications">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
-                </div>
-                <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={setEmailNotifications} />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="browser-notifications">Browser Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications in your browser</p>
-                </div>
-                <Switch
-                  id="browser-notifications"
-                  checked={browserNotifications}
-                  onCheckedChange={setBrowserNotifications}
-                />
-              </div>
-            </div>
-
-            <Button onClick={handleSaveNotifications} className="mt-6" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </div>
-        </TabsContent>
+        
 
         <TabsContent value="privacy" className="space-y-6">
           <div className="bg-card rounded-lg p-6 shadow-sm">
