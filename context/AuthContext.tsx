@@ -78,28 +78,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      const response = await axios.post(`${API_URL}/auth/login`, { email, password })
+      console.log("Attempting login with:", { email, url: `${API_URL}/auth/login` })
+
+      // Ensure email is lowercase and trimmed
+      const loginData = {
+        email: email.toLowerCase().trim(),
+        password: password,
+      }
+
+      const response = await axios.post(`${API_URL}/auth/login`, loginData, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000, // 10 seconds timeout
+      })
+
+      console.log("Login response:", response.data)
 
       // Extract user data and token
       const userData = response.data
       const authToken = userData.token
 
-      // Remove token from user object to avoid duplication
-      const { token: _, ...userWithoutToken } = userData
+      // Store the token in localStorage
+      localStorage.setItem("token", authToken)
 
+      // Store the user data in localStorage (without duplicating the token)
+      const { token: _, ...userWithoutToken } = userData
+      localStorage.setItem("user", JSON.stringify(userWithoutToken))
+
+      // Update state
       setUser(userWithoutToken)
       setToken(authToken)
 
-      localStorage.setItem("user", JSON.stringify(userWithoutToken))
-      localStorage.setItem("token", authToken)
-
       toast.success("Logged in successfully")
       return
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error)
 
-      if (axios.isAxiosError(error) && error.response) {
-        toast.error(error.response.data.message || "Invalid email or password")
+      // Log detailed error information for debugging
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers,
+          config: error.config,
+        })
+
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message)
+        } else {
+          toast.error("Login failed. Please check your credentials and try again.")
+        }
       } else {
         toast.error("Login failed. Please try again.")
       }
@@ -112,25 +141,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
-      const response = await axios.post(`${API_URL}/auth/register`, { name, email, password })
+      console.log("Attempting registration with:", { name, email, url: `${API_URL}/auth/register` })
+
+      const response = await axios.post(
+        `${API_URL}/auth/register`,
+        {
+          name,
+          email: email.toLowerCase().trim(),
+          password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000, // 10 seconds timeout
+        },
+      )
+
+      console.log("Registration response:", response.data)
 
       // Extract user data and token
       const userData = response.data
       const authToken = userData.token
 
-      // Remove token from user object to avoid duplication
-      const { token: _, ...userWithoutToken } = userData
+      // Store the token in localStorage
+      localStorage.setItem("token", authToken)
 
+      // Store the user data in localStorage (without duplicating the token)
+      const { token: _, ...userWithoutToken } = userData
+      localStorage.setItem("user", JSON.stringify(userWithoutToken))
+
+      // Update state
       setUser(userWithoutToken)
       setToken(authToken)
-
-      localStorage.setItem("user", JSON.stringify(userWithoutToken))
-      localStorage.setItem("token", authToken)
 
       // Only show one toast notification
       toast.success("Registration successful")
       return
-    } catch (error) {
+    } catch (error: any) {
       console.error("Register error:", error)
 
       if (axios.isAxiosError(error) && error.response) {

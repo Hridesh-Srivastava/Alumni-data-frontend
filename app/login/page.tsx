@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, AlertCircle, ArrowLeft } from "lucide-react"
@@ -19,8 +19,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const router = useRouter()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard")
+    }
+  }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,10 +41,11 @@ export default function LoginPage() {
     setError("")
 
     try {
-      await login(email.trim().toLowerCase(), password)
+      console.log("Submitting login form with email:", email)
+      await login(email.trim(), password)
       router.push("/dashboard")
     } catch (error: any) {
-      console.error("Login error:", error)
+      console.error("Login error in page component:", error)
 
       // Extract error message from response if available
       if (error.response && error.response.data && error.response.data.message) {
