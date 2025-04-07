@@ -1,56 +1,61 @@
-// app/register/page.tsx - Updated version
-
 "use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Loader2, ArrowLeft } from "lucide-react";
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { useAuth } from "@/context/AuthContext"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, ArrowLeft, AlertCircle } from "lucide-react"
 
 export default function RegisterPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
-  const router = useRouter();
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const { register } = useAuth()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
+    setError("")
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
+      setError("Passwords do not match")
+      return
     }
 
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
+      setError("Password must be at least 6 characters")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      await register(
-        name.trim(),
-        email.trim().toLowerCase(),
-        password
-      );
-      toast.success("Registration successful");
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Registration error:", error);
+      await register(name.trim(), email.trim().toLowerCase(), password)
+      // No toast here - it's handled in the AuthContext
+      router.push("/dashboard")
+    } catch (error: any) {
+      console.error("Registration error:", error)
+
+      // Extract error message from response if available
+      if (error.response && error.response.data && error.response.data.message) {
+        setError(error.response.data.message)
+      } else {
+        setError("Registration failed. Please try again.")
+      }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted px-4 py-12 sm:px-6 lg:px-8">
@@ -67,6 +72,12 @@ export default function RegisterPage() {
             <CardDescription className="text-center">Enter your information to create an admin account</CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
@@ -134,5 +145,6 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }
+

@@ -43,7 +43,13 @@ export const loginUser = async (credentials: any) => {
     // Backend is available, use real API
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, credentials, {
+      // Ensure email is lowercase for consistency
+      const loginData = {
+        email: credentials.email.toLowerCase().trim(),
+        password: credentials.password,
+      }
+
+      const response = await axios.post(`${API_URL}/auth/login`, loginData, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -54,7 +60,7 @@ export const loginUser = async (credentials: any) => {
       localStorage.setItem("token", response.data.token)
 
       // Store the user data in localStorage
-      localStorage.setItem("user", JSON.stringify(response.data.user))
+      localStorage.setItem("user", JSON.stringify(response.data))
 
       return response.data
     } catch (error: any) {
