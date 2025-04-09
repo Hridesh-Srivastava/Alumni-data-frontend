@@ -76,11 +76,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       href: "/dashboard/profile",
       icon: <User className="h-5 w-5" />,
     },
-    {
-      title: "Settings",
-      href: "/dashboard/settings",
-      icon: <Settings className="h-5 w-5" />,
-    },
+    // {
+    //   title: "Settings",
+    //   href: "/dashboard/settings",
+    //   icon: <Settings className="h-5 w-5" />,
+    // },
   ]
 
   return (
