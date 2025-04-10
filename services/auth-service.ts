@@ -95,6 +95,112 @@ export const loginUser = async (credentials: any) => {
   }
 }
 
+// Function to request a password reset
+export const requestPasswordReset = async (email: string) => {
+  if (isBackendAvailable) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    try {
+      console.log(`Sending password reset request to ${API_URL}/auth/forgot-password for email: ${email}`)
+
+      // Add a timestamp to help identify this specific request in server logs
+      const timestamp = new Date().toISOString()
+      console.log(`Request timestamp: ${timestamp}`)
+
+      const response = await axios.post(
+        `${API_URL}/auth/forgot-password`,
+        {
+          email,
+          clientTimestamp: timestamp, // Send this to help correlate with server logs
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 15000, // Increased timeout to 15 seconds
+          // Don't use withCredentials for this public endpoint
+          withCredentials: false,
+        },
+      )
+
+      console.log("Password reset response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("Forgot password error details:", error)
+
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Error response data:", error.response.data)
+        console.error("Error response status:", error.response.status)
+        console.error("Error response headers:", error.response.headers)
+        throw error.response.data?.message || "Failed to request password reset"
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("No response received:", error.request)
+        throw "No response from server. Please check your connection."
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Error message:", error.message)
+        throw error.message || "Failed to request password reset"
+      }
+    }
+  } else {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log(`Mock password reset request for email: ${email}`)
+        resolve({ message: "Password reset instructions sent to your email (mock)" })
+      }, 500)
+    })
+  }
+}
+
+// Function to reset password with token
+export const resetPassword = async (token: string, newPassword: string) => {
+  if (isBackendAvailable) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    try {
+      console.log(`Sending password reset with token to ${API_URL}/auth/reset-password`)
+
+      const response = await axios.post(
+        `${API_URL}/auth/reset-password`,
+        { token, newPassword },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+          // Don't use withCredentials for this public endpoint
+          withCredentials: false,
+        },
+      )
+
+      console.log("Reset password response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("Reset password error details:", error)
+
+      if (error.response) {
+        console.error("Error response data:", error.response.data)
+        console.error("Error response status:", error.response.status)
+        throw error.response.data?.message || "Failed to reset password"
+      } else if (error.request) {
+        console.error("No response received:", error.request)
+        throw "No response from server. Please check your connection."
+      } else {
+        console.error("Error message:", error.message)
+        throw error.message || "Failed to reset password"
+      }
+    }
+  } else {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log(`Mock password reset with token: ${token}`)
+        resolve({ message: "Password reset successful (mock)" })
+      }, 500)
+    })
+  }
+}
+
 // Function to log out the user
 export const logoutUser = () => {
   localStorage.removeItem("token")
@@ -337,4 +443,3 @@ export const updateUserSettings = async (settings: any) => {
     })
   }
 }
-

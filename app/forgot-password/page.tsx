@@ -32,13 +32,24 @@ export default function ForgotPasswordPage() {
     setError("")
 
     try {
-      await requestPasswordReset(email)
+      // Log the request for debugging
+      console.log("Requesting password reset for email:", email)
+
+      // Make sure email is trimmed and lowercase for consistency
+      const formattedEmail = email.trim().toLowerCase()
+
+      // Call the service function
+      await requestPasswordReset(formattedEmail)
+
+      console.log("Password reset request successful")
       setIsSubmitted(true)
     } catch (error) {
-      console.error("Password reset error:", error)
+      console.error("Password reset request failed:", error)
 
       if (error instanceof Error) {
         setError(error.message)
+      } else if (typeof error === "string") {
+        setError(error)
       } else {
         setError("An error occurred. Please try again later.")
       }
@@ -122,4 +133,3 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
-

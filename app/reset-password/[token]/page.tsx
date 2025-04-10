@@ -24,7 +24,11 @@ export default function ResetPasswordPage({ params }) {
   // Use useEffect to handle the params.token
   useEffect(() => {
     if (params && params.token) {
+      console.log("Token from URL:", params.token)
       setToken(params.token)
+    } else {
+      console.error("No token found in URL parameters")
+      setError("Invalid or missing reset token")
     }
   }, [params])
 
@@ -52,12 +56,15 @@ export default function ResetPasswordPage({ params }) {
     try {
       console.log("Resetting password with token:", token)
       await resetPassword(token, password)
+      console.log("Password reset successful")
       setIsSubmitted(true)
     } catch (error) {
       console.error("Password reset error:", error)
 
       if (error instanceof Error) {
         setError(error.message)
+      } else if (typeof error === "string") {
+        setError(error)
       } else {
         setError("An error occurred. Please try again later.")
       }
@@ -127,6 +134,8 @@ export default function ResetPasswordPage({ params }) {
                       type={showPassword ? "text" : "password"}
                       className="pl-10"
                       value={confirmPassword}
+                      className="pl-10"
+                      value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={isSubmitting}
                       required
@@ -157,4 +166,3 @@ export default function ResetPasswordPage({ params }) {
     </div>
   )
 }
-
