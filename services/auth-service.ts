@@ -6,7 +6,7 @@ const isBackendAvailable = process.env.NEXT_PUBLIC_BACKEND_AVAILABLE === "true"
 export const registerUser = async (userData: any) => {
   if (isBackendAvailable) {
     // Backend is available, use real API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     try {
       const response = await axios.post(`${API_URL}/auth/register`, userData, {
         headers: {
@@ -41,7 +41,7 @@ export const registerUser = async (userData: any) => {
 export const loginUser = async (credentials: any) => {
   if (isBackendAvailable) {
     // Backend is available, use real API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     try {
       // Ensure email is lowercase for consistency
       const loginData = {
@@ -98,26 +98,18 @@ export const loginUser = async (credentials: any) => {
 // Function to request a password reset
 export const requestPasswordReset = async (email: string) => {
   if (isBackendAvailable) {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     try {
       console.log(`Sending password reset request to ${API_URL}/auth/forgot-password for email: ${email}`)
 
-      // Add a timestamp to help identify this specific request in server logs
-      const timestamp = new Date().toISOString()
-      console.log(`Request timestamp: ${timestamp}`)
-
       const response = await axios.post(
         `${API_URL}/auth/forgot-password`,
-        {
-          email,
-          clientTimestamp: timestamp, // Send this to help correlate with server logs
-        },
+        { email: email.toLowerCase().trim() }, // Simplify the request payload
         {
           headers: {
             "Content-Type": "application/json",
           },
           timeout: 15000, // Increased timeout to 15 seconds
-          // Don't use withCredentials for this public endpoint
           withCredentials: false,
         },
       )
@@ -157,19 +149,18 @@ export const requestPasswordReset = async (email: string) => {
 // Function to reset password with token
 export const resetPassword = async (token: string, newPassword: string) => {
   if (isBackendAvailable) {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     try {
       console.log(`Sending password reset with token to ${API_URL}/auth/reset-password`)
 
       const response = await axios.post(
         `${API_URL}/auth/reset-password`,
-        { token, newPassword },
+        { token, newPassword }, // Use token parameter name to match backend
         {
           headers: {
             "Content-Type": "application/json",
           },
           timeout: 10000,
-          // Don't use withCredentials for this public endpoint
           withCredentials: false,
         },
       )
@@ -211,7 +202,7 @@ export const logoutUser = () => {
 export const getUserProfile = async () => {
   if (isBackendAvailable) {
     // Backend is available, use real API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     const token = localStorage.getItem("token")
 
     if (!token) {
@@ -261,7 +252,7 @@ export const getUserProfile = async () => {
 export const updateUserProfile = async (userData: any) => {
   if (isBackendAvailable) {
     // Backend is available, use real API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     const token = localStorage.getItem("token")
 
     if (!token) {
@@ -321,7 +312,7 @@ export const updateUserProfile = async (userData: any) => {
 export const updatePassword = async (passwords: any) => {
   if (isBackendAvailable) {
     // Backend is available, use real API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     const token = localStorage.getItem("token")
 
     if (!token) {
@@ -363,7 +354,7 @@ export const updatePassword = async (passwords: any) => {
 export const updateUserSettings = async (settings: any) => {
   if (isBackendAvailable) {
     // Backend is available, use real API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
     const token = localStorage.getItem("token")
 
     if (!token) {

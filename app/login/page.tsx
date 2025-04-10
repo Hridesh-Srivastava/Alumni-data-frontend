@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -29,7 +27,7 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!email || !password) {
@@ -44,7 +42,7 @@ export default function LoginPage() {
       console.log("Submitting login form with email:", email)
       await login(email.trim(), password)
       router.push("/dashboard")
-    } catch (error: any) {
+    } catch (error) {
       console.error("Login error in page component:", error)
 
       // Extract error message from response if available
@@ -144,4 +142,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { resetPassword } from "@/services/auth-service"
 
-export default function ResetPasswordPage({ params }) {
+export default function ResetPasswordPage({ params }: { params: { token: string } }) {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -132,8 +132,6 @@ export default function ResetPasswordPage({ params }) {
                     <Input
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
-                      className="pl-10"
-                      value={confirmPassword}
                       className="pl-10"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}

@@ -67,8 +67,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const storedToken = localStorage.getItem("token")
 
     if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser))
-      setToken(storedToken)
+      try {
+        setUser(JSON.parse(storedUser))
+        setToken(storedToken)
+      } catch (error) {
+        console.error("Error parsing stored user:", error)
+        // Clear invalid data
+        localStorage.removeItem("user")
+        localStorage.removeItem("token")
+      }
     }
 
     setLoading(false)
@@ -76,7 +83,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
       console.log("Attempting login with:", { email, url: `${API_URL}/auth/login` })
 
@@ -139,7 +146,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
       console.log("Attempting registration with:", { name, email, url: `${API_URL}/auth/register` })
 
@@ -209,7 +216,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error("Authentication required. Please log in again.")
       }
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
       const response = await axios.put(`${API_URL}/auth/profile`, userData, {
         headers: {
@@ -252,7 +259,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error("Authentication required. Please log in again.")
       }
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
       // Fix: Properly structure the settings object
       const response = await axios.put(
@@ -329,4 +336,3 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     </AuthContext.Provider>
   )
 }
-
