@@ -195,9 +195,9 @@ export const createAlumni = async (alumniData) => {
           // Add all regular fields to formData
           Object.keys(alumniData).forEach((key) => {
             if (key !== "basicInfoImage" && key !== "qualificationImage" && key !== "employmentImage") {
-              if (typeof alumniData[key] === "object") {
+              if (typeof alumniData[key] === "object" && alumniData[key] !== null) {
                 formData.append(key, JSON.stringify(alumniData[key]))
-              } else {
+              } else if (alumniData[key] !== null && alumniData[key] !== undefined) {
                 formData.append(key, alumniData[key])
               }
             }
@@ -214,6 +214,12 @@ export const createAlumni = async (alumniData) => {
 
           if (alumniData.employmentImage) {
             formData.append("employmentImage", alumniData.employmentImage)
+          }
+
+          // Log FormData contents for debugging
+          console.log("FormData created with the following keys:");
+          for (let pair of formData.entries()) {
+            console.log(pair[0] + ": " + pair[1]);
           }
 
           // Use direct axios call with FormData
@@ -328,6 +334,10 @@ export const updateAlumni = async (id, alumniData, token) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
         if (!token) {
+          token = localStorage.getItem("token")
+        }
+
+        if (!token) {
           throw new Error("Authentication required. Please log in again.")
         }
 
@@ -336,9 +346,9 @@ export const updateAlumni = async (id, alumniData, token) => {
         // Add all regular fields to formData
         Object.keys(alumniData).forEach((key) => {
           if (key !== "basicInfoImage" && key !== "qualificationImage" && key !== "employmentImage") {
-            if (typeof alumniData[key] === "object") {
+            if (typeof alumniData[key] === "object" && alumniData[key] !== null) {
               formData.append(key, JSON.stringify(alumniData[key]))
-            } else {
+            } else if (alumniData[key] !== null && alumniData[key] !== undefined) {
               formData.append(key, alumniData[key])
             }
           }

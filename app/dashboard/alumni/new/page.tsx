@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createAlumni } from "@/services/alumni-service"
 import { getAcademicUnits } from "@/services/academic-unit-service"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle } from 'lucide-react'
 
 // Define the form schema
 const alumniFormSchema = z.object({
@@ -145,7 +145,11 @@ export default function NewAlumniPage() {
         academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
       }
 
-      await createAlumni(formData)
+      console.log("Form data prepared:", formData);
+
+      // Call the createAlumni function with the form data
+      const result = await createAlumni(formData)
+      console.log("Alumni creation result:", result);
 
       toast.success("Alumni record created successfully")
       router.push("/dashboard/alumni")
@@ -764,4 +768,3 @@ export default function NewAlumniPage() {
     </div>
   )
 }
-

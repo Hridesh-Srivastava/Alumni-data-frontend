@@ -6,6 +6,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000, // 10 second timeout
 })
 
 // Add request interceptor to include auth token
@@ -39,18 +40,22 @@ export const checkBackendStatus = async (): Promise<boolean> => {
 
     for (const endpoint of endpoints) {
       try {
+        console.log(`Trying to connect to: ${endpoint}`);
         const response = await axios.get(endpoint, {
           timeout: 3000, // Shorter timeout for faster checks
         })
         if (response.status === 200) {
+          console.log(`Successfully connected to: ${endpoint}`);
           return true
         }
       } catch (err) {
+        console.log(`Failed to connect to: ${endpoint}`);
         // Continue to next endpoint
       }
     }
 
     // All attempts failed
+    console.log("All connection attempts failed");
     return false
   } catch (error) {
     console.warn("Backend connectivity check failed:", error)
