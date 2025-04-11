@@ -217,9 +217,9 @@ export const createAlumni = async (alumniData) => {
           }
 
           // Log FormData contents for debugging
-          console.log("FormData created with the following keys:");
-          for (let pair of formData.entries()) {
-            console.log(pair[0] + ": " + pair[1]);
+          console.log("FormData created with the following keys:")
+          for (const pair of formData.entries()) {
+            console.log(pair[0] + ": " + pair[1])
           }
 
           // Use direct axios call with FormData

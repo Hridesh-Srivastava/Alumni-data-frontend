@@ -3,18 +3,17 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { getAlumni } from "@/services/alumni-service"
-import { toast } from "sonner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-import { Loader2, AlertCircle } from 'lucide-react'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
 interface Alumni {
@@ -122,11 +121,7 @@ export function AlumniTable({ filter }: AlumniTableProps) {
         <AlertCircle className="h-6 w-6 text-destructive mx-auto mb-2" />
         <h3 className="font-medium text-destructive">Error loading alumni</h3>
         <p className="text-sm text-destructive/80 mt-1">{error}</p>
-        <Button 
-          variant="outline" 
-          className="mt-4"
-          onClick={() => setPagination({ ...pagination, currentPage: 1 })}
-        >
+        <Button variant="outline" className="mt-4" onClick={() => setPagination({ ...pagination, currentPage: 1 })}>
           Try Again
         </Button>
       </div>
@@ -158,12 +153,12 @@ export function AlumniTable({ filter }: AlumniTableProps) {
                   <TableCell>{alumnus.program}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Link href={`/dashboard/alumni/${alumnus._id}`}>
-                        <Button variant="outline" size="sm">View</Button>
-                      </Link>
-                      <Link href={`/dashboard/alumni/${alumnus._id}/edit`}>
-                        <Button variant="outline" size="sm">Edit</Button>
-                      </Link>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/alumni/${alumnus._id}`}>View</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/alumni/${alumnus._id}/edit`}>Edit</Link>
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -183,8 +178,8 @@ export function AlumniTable({ filter }: AlumniTableProps) {
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious 
-                href="#" 
+              <PaginationPrevious
+                href="#"
                 onClick={(e) => {
                   e.preventDefault()
                   if (pagination.currentPage > 1) {
@@ -194,11 +189,11 @@ export function AlumniTable({ filter }: AlumniTableProps) {
                 className={pagination.currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
-            
+
             {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
               <PaginationItem key={page}>
-                <PaginationLink 
-                  href="#" 
+                <PaginationLink
+                  href="#"
                   onClick={(e) => {
                     e.preventDefault()
                     handlePageChange(page)
@@ -209,10 +204,10 @@ export function AlumniTable({ filter }: AlumniTableProps) {
                 </PaginationLink>
               </PaginationItem>
             ))}
-            
+
             <PaginationItem>
-              <PaginationNext 
-                href="#" 
+              <PaginationNext
+                href="#"
                 onClick={(e) => {
                   e.preventDefault()
                   if (pagination.currentPage < pagination.totalPages) {

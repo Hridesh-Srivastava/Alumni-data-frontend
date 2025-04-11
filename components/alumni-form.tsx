@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { createAlumni, updateAlumni, getAlumniById } from "@/services/alumni-service"
+import { createAlumni, updateAlumni } from "@/services/alumni-service"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,14 +11,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from "lucide-react"
 
 interface AlumniFormProps {
-  id?: string
-  isEdit?: boolean
+  initialData?: any
+  isEditing?: boolean
+  alumniId?: string
 }
 
-export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
+export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("basic-info")
@@ -32,57 +33,54 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
       phone: "",
       address: "",
     },
-    qualifications: {
+    qualifiedExams: {
       examName: "",
       rollNumber: "",
-      certificate: "",
+      certificateUrl: "",
     },
     employment: {
       type: "",
-      document: "",
+      employerName: "",
+      employerContact: "",
+      employerEmail: "",
+      selfEmploymentDetails: "",
+      documentUrl: "",
     },
     higherEducation: {
       institutionName: "",
-      program: "",
+      programName: "",
+      documentUrl: "",
     },
+    basicInfoImageUrl: "",
     basicInfoImage: null,
     qualificationImage: null,
     employmentImage: null,
   })
 
-  // Fetch alumni data if in edit mode
+  // Initialize form with initial data if provided
   useEffect(() => {
-    if (isEdit && id) {
-      const fetchAlumni = async () => {
-        try {
-          setIsLoading(true)
-          const data = await getAlumniById(id)
-          
-          // Initialize nested objects if they don't exist
-          const alumni = {
-            ...data,
-            contactDetails: data.contactDetails || {},
-            qualifications: data.qualifications || {},
-            employment: data.employment || {},
-            higherEducation: data.higherEducation || {},
-          }
-          
-          setFormData(alumni)
-        } catch (error) {
-          console.error("Error fetching alumni:", error)
-          toast.error("Failed to fetch alumni details")
-        } finally {
-          setIsLoading(false)
-        }
+    if (initialData) {
+      // Ensure nested objects exist
+      const data = {
+        ...initialData,
+        contactDetails: initialData.contactDetails || {},
+        qualifiedExams: initialData.qualifiedExams || {},
+        employment: initialData.employment || {},
+        higherEducation: initialData.higherEducation || {},
       }
 
-      fetchAlumni()
+      setFormData({
+        ...data,
+        basicInfoImage: null,
+        qualificationImage: null,
+        employmentImage: null,
+      })
     }
-  }, [isEdit, id])
+  }, [initialData])
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    
+
     // Handle nested fields
     if (name.includes(".")) {
       const [parent, child] = name.split(".")
@@ -132,27 +130,27 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     // Validate required fields
     if (!formData.name || !formData.registrationNumber || !formData.program || !formData.passingYear) {
       toast.error("Please fill in all required fields")
       setActiveTab("basic-info")
       return
     }
-    
+
     try {
       setIsLoading(true)
-      
-      if (isEdit && id) {
+
+      if (isEditing && alumniId) {
         // Update existing alumni
-        await updateAlumni(id, formData)
+        await updateAlumni(alumniId, formData)
         toast.success("Alumni updated successfully")
       } else {
         // Create new alumni
         await createAlumni(formData)
         toast.success("Alumni created successfully")
       }
-      
+
       // Redirect to alumni list
       router.push("/dashboard/alumni")
     } catch (error) {
@@ -187,23 +185,13 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
     }
   }
 
-  if (isLoading && isEdit) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
   return (
     <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>{isEdit ? "Edit Alumni" : "Add New Alumni"}</CardTitle>
+          <CardTitle>{isEditing ? "Edit Alumni" : "Add New Alumni"}</CardTitle>
           <CardDescription>
-            {isEdit
-              ? "Update alumni information in the system"
-              : "Add a new alumni to the HSST database"}
+            {isEditing ? "Update alumni information in the system" : "Add a new alumni to the HSST database"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -214,21 +202,19 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
               <TabsTrigger value="employment">Employment</TabsTrigger>
               <TabsTrigger value="higher-education">Higher Education</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="basic-info" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
+                  <Label htmlFor="name">
+                    Full Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="registrationNumber">Registration Number <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="registrationNumber">
+                    Registration Number <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="registrationNumber"
                     name="registrationNumber"
@@ -238,36 +224,21 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="program">Program <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={formData.program}
-                    onValueChange={(value) => handleSelectChange(value, "program")}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select program" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="B.Tech (CSE)">B.Tech (CSE)</SelectItem>
-                      <SelectItem value="B.Tech (ME)">B.Tech (ME)</SelectItem>
-                      <SelectItem value="B.Tech (CE)">B.Tech (CE)</SelectItem>
-                      <SelectItem value="B.Tech (EE)">B.Tech (EE)</SelectItem>
-                      <SelectItem value="M.Tech (CSE)">M.Tech (CSE)</SelectItem>
-                      <SelectItem value="M.Tech (ME)">M.Tech (ME)</SelectItem>
-                      <SelectItem value="M.Tech (CE)">M.Tech (CE)</SelectItem>
-                      <SelectItem value="M.Tech (EE)">M.Tech (EE)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="program">
+                    Program <span className="text-red-500">*</span>
+                  </Label>
+                  <Input id="program" name="program" value={formData.program} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="passingYear">Passing Year <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="passingYear">
+                    Passing Year <span className="text-red-500">*</span>
+                  </Label>
                   <Select
                     value={formData.passingYear}
                     onValueChange={(value) => handleSelectChange(value, "passingYear")}
-                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select year" />
@@ -282,7 +253,7 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contactDetails.email">Email</Label>
@@ -304,7 +275,7 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="contactDetails.address">Address</Label>
                 <Textarea
@@ -315,7 +286,7 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   rows={3}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="basicInfoImage">Upload ID Proof (optional)</Label>
                 <Input
@@ -325,41 +296,46 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
+                {(formData.basicInfoImageUrl || initialData?.basicInfoImageUrl) && !formData.basicInfoImage && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Current file:
+                      <a
+                        href={formData.basicInfoImageUrl || initialData?.basicInfoImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary hover:underline"
+                      >
+                        View Document
+                      </a>
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="qualifications" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="qualifications.examName">Exam Name</Label>
+                  <Label htmlFor="qualifiedExams.examName">Exam Name</Label>
                   <Input
-                    id="qualifications.examName"
-                    name="qualifications.examName"
-                    value={formData.qualifications.examName || ""}
+                    id="qualifiedExams.examName"
+                    name="qualifiedExams.examName"
+                    value={formData.qualifiedExams.examName || ""}
                     onChange={handleChange}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="qualifications.rollNumber">Roll Number</Label>
+                  <Label htmlFor="qualifiedExams.rollNumber">Roll Number</Label>
                   <Input
-                    id="qualifications.rollNumber"
-                    name="qualifications.rollNumber"
-                    value={formData.qualifications.rollNumber || ""}
+                    id="qualifiedExams.rollNumber"
+                    name="qualifiedExams.rollNumber"
+                    value={formData.qualifiedExams.rollNumber || ""}
                     onChange={handleChange}
                   />
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="qualifications.certificate">Certificate</Label>
-                <Input
-                  id="qualifications.certificate"
-                  name="qualifications.certificate"
-                  value={formData.qualifications.certificate || ""}
-                  onChange={handleChange}
-                />
-              </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="qualificationImage">Upload Certificate (optional)</Label>
                 <Input
@@ -369,9 +345,25 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
+                {(formData.qualifiedExams.certificateUrl || initialData?.qualifiedExams?.certificateUrl) &&
+                  !formData.qualificationImage && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        Current file:
+                        <a
+                          href={formData.qualifiedExams.certificateUrl || initialData?.qualifiedExams?.certificateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-primary hover:underline"
+                        >
+                          View Certificate
+                        </a>
+                      </p>
+                    </div>
+                  )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="employment" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="employment.type">Employment Type</Label>
@@ -390,17 +382,53 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="employment.document">Employment Document</Label>
-                <Input
-                  id="employment.document"
-                  name="employment.document"
-                  value={formData.employment.document || ""}
-                  onChange={handleChange}
-                />
-              </div>
-              
+
+              {formData.employment.type === "Employed" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="employment.employerName">Employer Name</Label>
+                    <Input
+                      id="employment.employerName"
+                      name="employment.employerName"
+                      value={formData.employment.employerName || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="employment.employerContact">Employer Contact</Label>
+                    <Input
+                      id="employment.employerContact"
+                      name="employment.employerContact"
+                      value={formData.employment.employerContact || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="employment.employerEmail">Employer Email</Label>
+                    <Input
+                      id="employment.employerEmail"
+                      name="employment.employerEmail"
+                      type="email"
+                      value={formData.employment.employerEmail || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </>
+              )}
+
+              {formData.employment.type === "Self-Employed" && (
+                <div className="space-y-2">
+                  <Label htmlFor="employment.selfEmploymentDetails">Self-employment Details</Label>
+                  <Textarea
+                    id="employment.selfEmploymentDetails"
+                    name="employment.selfEmploymentDetails"
+                    value={formData.employment.selfEmploymentDetails || ""}
+                    onChange={handleChange}
+                    rows={3}
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="employmentImage">Upload Employment Proof (optional)</Label>
                 <Input
@@ -410,9 +438,25 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
+                {(formData.employment.documentUrl || initialData?.employment?.documentUrl) &&
+                  !formData.employmentImage && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        Current file:
+                        <a
+                          href={formData.employment.documentUrl || initialData?.employment?.documentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-primary hover:underline"
+                        >
+                          View Document
+                        </a>
+                      </p>
+                    </div>
+                  )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="higher-education" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="higherEducation.institutionName">Institution Name</Label>
@@ -423,16 +467,32 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="higherEducation.program">Program</Label>
+                <Label htmlFor="higherEducation.programName">Program</Label>
                 <Input
-                  id="higherEducation.program"
-                  name="higherEducation.program"
-                  value={formData.higherEducation.program || ""}
+                  id="higherEducation.programName"
+                  name="higherEducation.programName"
+                  value={formData.higherEducation.programName || ""}
                   onChange={handleChange}
                 />
               </div>
+
+              {(formData.higherEducation.documentUrl || initialData?.higherEducation?.documentUrl) && (
+                <div className="mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Current document:
+                    <a
+                      href={formData.higherEducation.documentUrl || initialData?.higherEducation?.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-primary hover:underline"
+                    >
+                      View Document
+                    </a>
+                  </p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -444,7 +504,7 @@ export function AlumniForm({ id, isEdit = false }: AlumniFormProps) {
           ) : (
             <div></div>
           )}
-          
+
           {activeTab !== "higher-education" ? (
             <Button type="button" onClick={handleNext}>
               Next

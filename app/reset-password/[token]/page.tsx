@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { resetPassword } from "@/services/auth-service"
 
-export default function ResetPasswordPage({ params }: { params: { token: string } }) {
+export default function ResetPasswordPage({ params }) {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -21,16 +21,21 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
   const router = useRouter()
   const [token, setToken] = useState("")
 
-  // Use useEffect to handle the params.token
   useEffect(() => {
-    if (params && params.token) {
-      console.log("Token from URL:", params.token)
-      setToken(params.token)
-    } else {
-      console.error("No token found in URL parameters")
-      setError("Invalid or missing reset token")
+    // Extract token from URL directly instead of using params
+    if (typeof window !== "undefined") {
+      const pathSegments = window.location.pathname.split("/")
+      const tokenFromUrl = pathSegments[pathSegments.length - 1]
+
+      if (tokenFromUrl) {
+        console.log("Token from URL:", tokenFromUrl)
+        setToken(tokenFromUrl)
+      } else {
+        console.error("No token found in URL")
+        setError("Invalid or missing reset token")
+      }
     }
-  }, [params])
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
