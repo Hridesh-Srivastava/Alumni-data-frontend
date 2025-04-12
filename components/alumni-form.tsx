@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { createAlumni, updateAlumni } from "@/services/alumni-service"
+import { createAlumni, updateAlumni, getAlumniById } from "@/services/alumni-service"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,6 +22,7 @@ interface AlumniFormProps {
 export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(false)
   const [activeTab, setActiveTab] = useState("basic-info")
   const [formData, setFormData] = useState({
     name: "",
@@ -57,26 +58,102 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     employmentImage: null,
   })
 
-  // Initialize form with initial data if provided
+  // Fetch alumni data when in edit mode
   useEffect(() => {
-    if (initialData) {
-      // Ensure nested objects exist
-      const data = {
-        ...initialData,
-        contactDetails: initialData.contactDetails || {},
-        qualifiedExams: initialData.qualifiedExams || {},
-        employment: initialData.employment || {},
-        higherEducation: initialData.higherEducation || {},
-      }
+    const fetchAlumniData = async () => {
+      if (isEditing && alumniId) {
+        try {
+          setIsFetching(true)
+          // Get token from localStorage
+          const token = localStorage.getItem("token")
+          const data = await getAlumniById(alumniId, token)
 
-      setFormData({
-        ...data,
-        basicInfoImage: null,
-        qualificationImage: null,
-        employmentImage: null,
-      })
+          // Ensure all nested objects exist with proper defaults
+          const processedData = {
+            ...data,
+            contactDetails: data.contactDetails || {
+              email: "",
+              phone: "",
+              address: "",
+            },
+            qualifiedExams: data.qualifiedExams || {
+              examName: "",
+              rollNumber: "",
+              certificateUrl: "",
+            },
+            employment: data.employment || {
+              type: "",
+              employerName: "",
+              employerContact: "",
+              employerEmail: "",
+              selfEmploymentDetails: "",
+              documentUrl: "",
+            },
+            higherEducation: data.higherEducation || {
+              institutionName: "",
+              programName: "",
+              documentUrl: "",
+            },
+            basicInfoImageUrl: data.basicInfoImageUrl || "",
+          }
+
+          setFormData({
+            ...processedData,
+            basicInfoImage: null,
+            qualificationImage: null,
+            employmentImage: null,
+          })
+
+          console.log("Fetched alumni data:", processedData)
+        } catch (error) {
+          console.error("Error fetching alumni data:", error)
+          toast.error("Failed to load alumni data")
+        } finally {
+          setIsFetching(false)
+        }
+      } else if (initialData) {
+        // If initialData is provided directly, use it
+        const processedData = {
+          ...initialData,
+          contactDetails: initialData.contactDetails || {
+            email: "",
+            phone: "",
+            address: "",
+          },
+          qualifiedExams: initialData.qualifiedExams || {
+            examName: "",
+            rollNumber: "",
+            certificateUrl: "",
+          },
+          employment: initialData.employment || {
+            type: "",
+            employerName: "",
+            employerContact: "",
+            employerEmail: "",
+            selfEmploymentDetails: "",
+            documentUrl: "",
+          },
+          higherEducation: initialData.higherEducation || {
+            institutionName: "",
+            programName: "",
+            documentUrl: "",
+          },
+          basicInfoImageUrl: initialData.basicInfoImageUrl || "",
+        }
+
+        setFormData({
+          ...processedData,
+          basicInfoImage: null,
+          qualificationImage: null,
+          employmentImage: null,
+        })
+
+        console.log("Using provided initial data:", processedData)
+      }
     }
-  }, [initialData])
+
+    fetchAlumniData()
+  }, [isEditing, alumniId, initialData])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -140,10 +217,12 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
 
     try {
       setIsLoading(true)
+      // Get token from localStorage
+      const token = localStorage.getItem("token")
 
       if (isEditing && alumniId) {
         // Update existing alumni
-        await updateAlumni(alumniId, formData)
+        await updateAlumni(alumniId, formData, token)
         toast.success("Alumni updated successfully")
       } else {
         // Create new alumni
@@ -183,6 +262,15 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     } else if (activeTab === "employment") {
       setActiveTab("higher-education")
     }
+  }
+
+  if (isFetching) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Loading alumni data...</span>
+      </div>
+    )
   }
 
   return (
@@ -299,12 +387,12 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {(formData.basicInfoImageUrl || initialData?.basicInfoImageUrl) && !formData.basicInfoImage && (
+                {formData.basicInfoImageUrl && !formData.basicInfoImage && (
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">
                       Current file:
                       <a
-                        href={formData.basicInfoImageUrl || initialData?.basicInfoImageUrl}
+                        href={formData.basicInfoImageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-2 text-primary hover:underline"
@@ -348,22 +436,21 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {(formData.qualifiedExams.certificateUrl || initialData?.qualifiedExams?.certificateUrl) &&
-                  !formData.qualificationImage && (
-                    <div className="mt-2">
-                      <p className="text-sm text-muted-foreground">
-                        Current file:
-                        <a
-                          href={formData.qualifiedExams.certificateUrl || initialData?.qualifiedExams?.certificateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-2 text-primary hover:underline"
-                        >
-                          View Certificate
-                        </a>
-                      </p>
-                    </div>
-                  )}
+                {formData.qualifiedExams.certificateUrl && !formData.qualificationImage && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Current file:
+                      <a
+                        href={formData.qualifiedExams.certificateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary hover:underline"
+                      >
+                        View Certificate
+                      </a>
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -441,22 +528,21 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {(formData.employment.documentUrl || initialData?.employment?.documentUrl) &&
-                  !formData.employmentImage && (
-                    <div className="mt-2">
-                      <p className="text-sm text-muted-foreground">
-                        Current file:
-                        <a
-                          href={formData.employment.documentUrl || initialData?.employment?.documentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-2 text-primary hover:underline"
-                        >
-                          View Document
-                        </a>
-                      </p>
-                    </div>
-                  )}
+                {formData.employment.documentUrl && !formData.employmentImage && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Current file:
+                      <a
+                        href={formData.employment.documentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary hover:underline"
+                      >
+                        View Document
+                      </a>
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -481,12 +567,12 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                 />
               </div>
 
-              {(formData.higherEducation.documentUrl || initialData?.higherEducation?.documentUrl) && (
+              {formData.higherEducation.documentUrl && (
                 <div className="mt-2">
                   <p className="text-sm text-muted-foreground">
                     Current document:
                     <a
-                      href={formData.higherEducation.documentUrl || initialData?.higherEducation?.documentUrl}
+                      href={formData.higherEducation.documentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ml-2 text-primary hover:underline"
