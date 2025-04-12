@@ -8,25 +8,21 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getStats } from "@/services/alumni-service"
 import { toast } from "sonner"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts"
 
 export default function StatisticsPage() {
   const { isAuthenticated, loading, token } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -53,6 +49,67 @@ export default function StatisticsPage() {
     }
   }, [isAuthenticated, loading, router, token])
 
+  // Format year to YYYY-YY pattern and aggregate counts
+  const processPassingYearData = (data: Record<string, number> | undefined) => {
+    if (!data) return []
+
+    const yearMap = new Map<string, number>()
+
+    Object.entries(data).forEach(([year, count]) => {
+      const formattedYear = formatYear(year)
+      const currentCount = yearMap.get(formattedYear) || 0
+      yearMap.set(formattedYear, currentCount + count)
+    })
+
+    return Array.from(yearMap.entries())
+      .map(([year, value]) => ({ year, value }))
+      .sort((a, b) => a.year.localeCompare(b.year))
+  }
+
+  const formatYear = (year: string) => {
+    if (year.includes("/")) return year.replace("/", "-")
+    if (/^\d{4}$/.test(year)) return `${year}-${(parseInt(year)+1).toString().slice(-2)}`
+    return year
+  }
+
+  const formatAcademicUnitName = (name: string) => {
+    if (name.includes("Himalayan")) return "HSST"
+    if (name.includes("Malayan")) return "MSS"
+    return name.length > 10 ? `${name.substring(0, 8)}...` : name
+  }
+
+  const academicUnitData = stats?.byAcademicUnit
+    ? Object.entries(stats.byAcademicUnit).map(([name, value]) => ({
+        name: formatAcademicUnitName(name),
+        fullName: name,
+        value
+      }))
+    : []
+
+  const passingYearData = processPassingYearData(stats?.byPassingYear)
+  const employmentData = stats
+    ? [
+        { name: "Employed", value: stats?.employmentRate || 0 },
+        { name: "Unemployed", value: 100 - (stats?.employmentRate || 0) }
+      ]
+    : []
+
+  const educationData = stats
+    ? [
+        { name: "Pursuing", value: stats?.higherEducationRate || 0 },
+        { name: "Not Pursuing", value: 100 - (stats?.higherEducationRate || 0) }
+      ]
+    : []
+
+  // Extended color palette for bars
+  const BAR_COLORS = [
+    '#0088FE', '#00C49F', '#FFBB28', '#FF8042', 
+    '#8884D8', '#82CA9D', '#FF6B6B', '#4ECDC4',
+    '#45B7D1', '#FFA07A', '#98D8C8', '#F06292',
+    '#6A5ACD', '#20B2AA', '#FF6347', '#4682B4',
+    '#32CD32', '#9370DB', '#3CB371', '#FF4500'
+  ]
+
   if (loading || !isAuthenticated) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -61,173 +118,181 @@ export default function StatisticsPage() {
     )
   }
 
-  // Prepare data for charts
-  const academicUnitData = stats
-    ? Object.entries(stats.byAcademicUnit).map(([name, value]) => ({
-        name: name.replace("Himalayan ", "").replace(" and Technology", ""),
-        value,
-      }))
-    : []
-
-  const passingYearData = stats
-    ? Object.entries(stats.byPassingYear).map(([year, value]) => ({
-        year,
-        value,
-      }))
-    : []
-
   return (
     <DashboardLayout>
       <DashboardHeader title="Statistics" description="Visualize alumni data and trends" />
 
       {isLoading ? (
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <div className="h-6 w-1/3 animate-pulse rounded bg-muted"></div>
-              <div className="h-4 w-1/2 animate-pulse rounded bg-muted"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 w-full animate-pulse rounded bg-muted"></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <div className="h-6 w-1/3 animate-pulse rounded bg-muted"></div>
-              <div className="h-4 w-1/2 animate-pulse rounded bg-muted"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 w-full animate-pulse rounded bg-muted"></div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="h-6 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse mt-2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 w-full bg-gray-200 rounded animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
+          {/* Academic Unit Chart */}
           <Card>
             <CardHeader>
               <CardTitle>Alumni by Academic Unit</CardTitle>
-              <CardDescription>Distribution of alumni across different academic units</CardDescription>
+              <CardDescription>Distribution across academic units</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={academicUnitData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {academicUnitData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"][index % 6]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} alumni`, "Count"]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={academicUnitData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={isMobile ? 80 : 100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name }) => name}
+                  >
+                    {academicUnitData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value, _, props) => [
+                      `${value} alumni`,
+                      props.payload.fullName
+                    ]}
+                  />
+                  <Legend 
+                    layout={isMobile ? "vertical" : "horizontal"} 
+                    verticalAlign="bottom"
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
+          {/* Passing Year Chart - With Different Colors */}
           <Card>
             <CardHeader>
               <CardTitle>Alumni by Passing Year</CardTitle>
-              <CardDescription>Number of alumni graduating each year</CardDescription>
+              <CardDescription>Number graduating each year</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={passingYearData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="year" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`${value} alumni`, "Count"]} />
-                    <Bar dataKey="value" fill="#8884d8" name="Alumni Count" />
-                  </BarChart>
-                </ResponsiveContainer>
+            <CardContent className="h-[400px] relative">
+              <div className="absolute inset-0 overflow-x-auto pb-4">
+                <div 
+                  className="h-full" 
+                  style={{ 
+                    minWidth: `${Math.max(passingYearData.length * 40, 600)}px`,
+                    paddingRight: '20px'
+                  }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={passingYearData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: isMobile ? 100 : 70,
+                      }}
+                      barCategoryGap={10}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="year"
+                        angle={isMobile ? -90 : -45}
+                        textAnchor="end"
+                        height={isMobile ? 100 : 70}
+                        tick={{ fontSize: isMobile ? 10 : 12 }}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar 
+                        dataKey="value" 
+                        name="Alumni Count"
+                        barSize={30}
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {passingYearData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={BAR_COLORS[index % BAR_COLORS.length]} 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Employment Status Chart */}
           <Card>
             <CardHeader>
               <CardTitle>Employment Status</CardTitle>
               <CardDescription>Current employment status of alumni</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Employed", value: stats?.employmentRate || 0 },
-                        { name: "Unemployed", value: 100 - (stats?.employmentRate || 0) },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      <Cell fill="#00C49F" />
-                      <Cell fill="#FF8042" />
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={employmentData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={isMobile ? 80 : 100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name }) => name}
+                  >
+                    {employmentData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value}%`, ""]} />
+                  <Legend 
+                    layout={isMobile ? "vertical" : "horizontal"} 
+                    verticalAlign="bottom"
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
+          {/* Higher Education Chart */}
           <Card>
             <CardHeader>
               <CardTitle>Higher Education</CardTitle>
               <CardDescription>Alumni pursuing higher education</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Pursuing Higher Education", value: stats?.higherEducationRate || 0 },
-                        { name: "Not Pursuing Higher Education", value: 100 - (stats?.higherEducationRate || 0) },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name.split(" ")[0]}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      <Cell fill="#0088FE" />
-                      <Cell fill="#FFBB28" />
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={educationData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={isMobile ? 80 : 100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name }) => name}
+                  >
+                    {educationData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={BAR_COLORS[(index + 2) % BAR_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value}%`, ""]} />
+                  <Legend 
+                    layout={isMobile ? "vertical" : "horizontal"} 
+                    verticalAlign="bottom"
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
