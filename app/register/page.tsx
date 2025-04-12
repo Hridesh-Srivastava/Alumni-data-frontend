@@ -83,7 +83,7 @@ export default function RegisterPage() {
                 <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
-                  placeholder="John Doe"
+                  placeholder="Your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
