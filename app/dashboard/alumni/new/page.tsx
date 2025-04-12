@@ -268,7 +268,7 @@ export default function NewAlumniPage() {
                       <FormItem>
                         <FormLabel>Program*</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. BCA, B.Tech, MBBS" {...field} />
+                          <Input placeholder="e.g. BCA, B.Tech, BSc." {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
