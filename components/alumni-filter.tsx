@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -20,6 +20,27 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
   const [academicUnit, setAcademicUnit] = useState("")
   const [passingYear, setPassingYear] = useState("")
   const [program, setProgram] = useState("")
+  const [yearOptions, setYearOptions] = useState<string[]>([])
+
+  // Generate year options dynamically
+  useEffect(() => {
+    const generateYearOptions = () => {
+      const currentYear = new Date().getFullYear()
+      const startYear = 2015
+      const endYear = currentYear + 75 // Generate 10 years into the future
+
+      const years: string[] = []
+
+      for (let year = startYear; year <= endYear; year++) {
+        years.push(`${year}-${(year + 1).toString().slice(-2)}`)
+      }
+
+      // Sort in descending order (newest first)
+      return years.reverse()
+    }
+
+    setYearOptions(generateYearOptions())
+  }, [])
 
   const handleApplyFilter = () => {
     onFilterChange({
@@ -53,12 +74,6 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               <SelectContent>
                 <SelectItem value="all">All Units</SelectItem>
                 <SelectItem value="Himalayan School of Science/Engineering and Technology">HSST</SelectItem>
-                <SelectItem value="Himalayan Institute of Medical Sciences (Medical)">HIMS (Medical)</SelectItem>
-                <SelectItem value="Himalayan Institute of Medical Sciences (Paramedical)">
-                  HIMS (Paramedical)
-                </SelectItem>
-                <SelectItem value="Himalayan School of Management Studies">HSMS</SelectItem>
-                <SelectItem value="Himalayan College of Nursing">HCN</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -68,15 +83,13 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               <SelectTrigger id="passingYear">
                 <SelectValue placeholder="All Years" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 <SelectItem value="all">All Years</SelectItem>
-                <SelectItem value="2016-17">2016-17</SelectItem>
-                <SelectItem value="2017-18">2017-18</SelectItem>
-                <SelectItem value="2018-19">2018-19</SelectItem>
-                <SelectItem value="2019-20">2019-20</SelectItem>
-                <SelectItem value="2020-21">2020-21</SelectItem>
-                <SelectItem value="2021-22">2021-22</SelectItem>
-                <SelectItem value="2022-23">2022-23</SelectItem>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -84,7 +97,7 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
             <Label htmlFor="program">Program</Label>
             <Input
               id="program"
-              placeholder="e.g. BCA, B.Tech, MBBS"
+              placeholder="e.g. BCA, B.Tech, MCA, M.Tech, BSc., MSc."
               value={program}
               onChange={(e) => setProgram(e.target.value)}
             />
@@ -104,4 +117,3 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
     </Card>
   )
 }
-
