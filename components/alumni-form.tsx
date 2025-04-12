@@ -244,23 +244,33 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     setActiveTab(value)
   }
 
-  const handlePrevious = () => {
-    if (activeTab === "qualifications") {
-      setActiveTab("basic-info")
-    } else if (activeTab === "employment") {
-      setActiveTab("qualifications")
-    } else if (activeTab === "higher-education") {
-      setActiveTab("employment")
-    }
-  }
+  // Fix the handleNext function to properly prevent form submission
+  const handleNext = (e) => {
+    // Prevent any default form submission
+    e.preventDefault()
+    e.stopPropagation()
 
-  const handleNext = () => {
     if (activeTab === "basic-info") {
       setActiveTab("qualifications")
     } else if (activeTab === "qualifications") {
       setActiveTab("employment")
     } else if (activeTab === "employment") {
       setActiveTab("higher-education")
+    }
+  }
+
+  // Fix the handlePrevious function to also prevent form submission
+  const handlePrevious = (e) => {
+    // Prevent any default form submission
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (activeTab === "qualifications") {
+      setActiveTab("basic-info")
+    } else if (activeTab === "employment") {
+      setActiveTab("qualifications")
+    } else if (activeTab === "higher-education") {
+      setActiveTab("employment")
     }
   }
 
@@ -587,7 +597,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
         </CardContent>
         <CardFooter className="flex justify-between">
           {activeTab !== "basic-info" ? (
-            <Button type="button" variant="outline" onClick={handlePrevious}>
+            <Button type="button" variant="outline" onClick={(e) => handlePrevious(e)}>
               Previous
             </Button>
           ) : (
@@ -595,11 +605,18 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
           )}
 
           {activeTab !== "higher-education" ? (
-            <Button type="button" onClick={handleNext}>
+            <Button type="button" onClick={(e) => handleNext(e)}>
               Next
             </Button>
           ) : (
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              onClick={(e) => {
+                // Only for the submit button, we want the default form submission
+                // but we'll handle it in the handleSubmit function
+              }}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
