@@ -22,21 +22,25 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
   const [program, setProgram] = useState("")
   const [yearOptions, setYearOptions] = useState<string[]>([])
 
-  // Generate year options dynamically
+ 
   useEffect(() => {
     const generateYearOptions = () => {
       const currentYear = new Date().getFullYear()
       const startYear = 2015
-      const endYear = currentYear + 75 // Generate 10 years into the future
+      const endYear = currentYear + 10
 
       const years: string[] = []
 
       for (let year = startYear; year <= endYear; year++) {
-        years.push(`${year}-${(year + 1).toString().slice(-2)}`)
+        const nextYearShort = (year + 1).toString().slice(-2).padStart(2, '0')
+        years.push(`${year}-${nextYearShort}`)
       }
 
-      // Sort in descending order (newest first)
-      return years.reverse()
+      return years.sort((a, b) => {
+        const yearA = parseInt(a.split('-')[0])
+        const yearB = parseInt(b.split('-')[0])
+        return yearB - yearA
+      })
     }
 
     setYearOptions(generateYearOptions())
@@ -65,11 +69,12 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
     <Card>
       <CardContent className="pt-6">
         <div className="grid gap-4 md:grid-cols-3">
+        
           <div className="space-y-2">
             <Label htmlFor="academicUnit">Academic Unit</Label>
             <Select value={academicUnit} onValueChange={setAcademicUnit}>
               <SelectTrigger id="academicUnit">
-                <SelectValue placeholder="All Units" />
+                <SelectValue placeholder="Select Academic Unit" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Units</SelectItem>
@@ -77,13 +82,15 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               </SelectContent>
             </Select>
           </div>
+
+         
           <div className="space-y-2">
             <Label htmlFor="passingYear">Passing Year</Label>
             <Select value={passingYear} onValueChange={setPassingYear}>
-              <SelectTrigger id="passingYear">
-                <SelectValue placeholder="All Years" />
+              <SelectTrigger id="passingYear" className="min-w-[180px]">
+                <SelectValue placeholder="Select Year" />
               </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
+              <SelectContent className="max-h-[300px] overflow-y-auto">
                 <SelectItem value="all">All Years</SelectItem>
                 {yearOptions.map((year) => (
                   <SelectItem key={year} value={year}>
@@ -93,6 +100,8 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               </SelectContent>
             </Select>
           </div>
+
+         
           <div className="space-y-2">
             <Label htmlFor="program">Program</Label>
             <Input
@@ -100,6 +109,7 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               placeholder="e.g. BCA, B.Tech, MCA, M.Tech, BSc., MSc."
               value={program}
               onChange={(e) => setProgram(e.target.value)}
+              className="min-w-[200px]"
             />
           </div>
         </div>
