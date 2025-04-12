@@ -1,29 +1,50 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { createAlumni, updateAlumni, getAlumniById } from "@/services/alumni-service"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2 } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  createAlumni,
+  updateAlumni,
+  getAlumniById,
+} from "@/services/alumni-service";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
 
 interface AlumniFormProps {
-  initialData?: any
-  isEditing?: boolean
-  alumniId?: string
+  initialData?: any;
+  isEditing?: boolean;
+  alumniId?: string;
 }
 
-export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniFormProps) {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isFetching, setIsFetching] = useState(false)
-  const [activeTab, setActiveTab] = useState("basic-info")
+export function AlumniForm({
+  initialData,
+  isEditing = false,
+  alumniId,
+}: AlumniFormProps) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic-info");
   const [formData, setFormData] = useState({
     name: "",
     registrationNumber: "",
@@ -56,17 +77,17 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     basicInfoImage: null,
     qualificationImage: null,
     employmentImage: null,
-  })
+  });
 
   // Fetch alumni data when in edit mode
   useEffect(() => {
     const fetchAlumniData = async () => {
       if (isEditing && alumniId) {
         try {
-          setIsFetching(true)
+          setIsFetching(true);
           // Get token from localStorage
-          const token = localStorage.getItem("token")
-          const data = await getAlumniById(alumniId, token)
+          const token = localStorage.getItem("token");
+          const data = await getAlumniById(alumniId, token);
 
           // Ensure all nested objects exist with proper defaults
           const processedData = {
@@ -95,21 +116,21 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               documentUrl: "",
             },
             basicInfoImageUrl: data.basicInfoImageUrl || "",
-          }
+          };
 
           setFormData({
             ...processedData,
             basicInfoImage: null,
             qualificationImage: null,
             employmentImage: null,
-          })
+          });
 
-          console.log("Fetched alumni data:", processedData)
+          console.log("Fetched alumni data:", processedData);
         } catch (error) {
-          console.error("Error fetching alumni data:", error)
-          toast.error("Failed to load alumni data")
+          console.error("Error fetching alumni data:", error);
+          toast.error("Failed to load alumni data");
         } finally {
-          setIsFetching(false)
+          setIsFetching(false);
         }
       } else if (initialData) {
         // If initialData is provided directly, use it
@@ -139,140 +160,145 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
             documentUrl: "",
           },
           basicInfoImageUrl: initialData.basicInfoImageUrl || "",
-        }
+        };
 
         setFormData({
           ...processedData,
           basicInfoImage: null,
           qualificationImage: null,
           employmentImage: null,
-        })
+        });
 
-        console.log("Using provided initial data:", processedData)
+        console.log("Using provided initial data:", processedData);
       }
-    }
+    };
 
-    fetchAlumniData()
-  }, [isEditing, alumniId, initialData])
+    fetchAlumniData();
+  }, [isEditing, alumniId, initialData]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
 
     // Handle nested fields
     if (name.includes(".")) {
-      const [parent, child] = name.split(".")
+      const [parent, child] = name.split(".");
       setFormData({
         ...formData,
         [parent]: {
           ...formData[parent],
           [child]: value,
         },
-      })
+      });
     } else {
       setFormData({
         ...formData,
         [name]: value,
-      })
+      });
     }
-  }
+  };
 
   const handleSelectChange = (value, name) => {
     // Handle nested fields
     if (name.includes(".")) {
-      const [parent, child] = name.split(".")
+      const [parent, child] = name.split(".");
       setFormData({
         ...formData,
         [parent]: {
           ...formData[parent],
           [child]: value,
         },
-      })
+      });
     } else {
       setFormData({
         ...formData,
         [name]: value,
-      })
+      });
     }
-  }
+  };
 
   const handleFileChange = (e) => {
-    const { name, files } = e.target
+    const { name, files } = e.target;
     if (files && files[0]) {
       setFormData({
         ...formData,
         [name]: files[0],
-      })
+      });
     }
-  }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Validate required fields
-    if (!formData.name || !formData.registrationNumber || !formData.program || !formData.passingYear) {
-      toast.error("Please fill in all required fields")
-      setActiveTab("basic-info")
-      return
+    if (
+      !formData.name ||
+      !formData.registrationNumber ||
+      !formData.program ||
+      !formData.passingYear
+    ) {
+      toast.error("Please fill in all required fields");
+      setActiveTab("basic-info");
+      return;
     }
 
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       // Get token from localStorage
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
 
       if (isEditing && alumniId) {
         // Update existing alumni
-        await updateAlumni(alumniId, formData, token)
-        toast.success("Alumni updated successfully")
+        await updateAlumni(alumniId, formData, token);
+        toast.success("Alumni updated successfully");
       } else {
         // Create new alumni
-        await createAlumni(formData)
-        toast.success("Alumni created successfully")
+        await createAlumni(formData);
+        toast.success("Alumni created successfully");
       }
 
       // Redirect to alumni list
-      router.push("/dashboard/alumni")
+      router.push("/dashboard/alumni");
     } catch (error) {
-      console.error("Error saving alumni:", error)
-      toast.error(error.message || "Failed to save alumni")
+      console.error("Error saving alumni:", error);
+      toast.error(error.message || "Failed to save alumni");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleTabChange = (value) => {
-    setActiveTab(value)
-  }
+    setActiveTab(value);
+  };
 
   // Fix the handleNext function to properly prevent form submission
   const handleNext = (e) => {
     // Prevent any default form submission
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
     if (activeTab === "basic-info") {
-      setActiveTab("qualifications")
+      setActiveTab("qualifications");
     } else if (activeTab === "qualifications") {
-      setActiveTab("employment")
+      setActiveTab("employment");
     } else if (activeTab === "employment") {
-      setActiveTab("higher-education")
+      setActiveTab("higher-education");
     }
-  }
+  };
 
   // Fix the handlePrevious function to also prevent form submission
   const handlePrevious = (e) => {
     // Prevent any default form submission
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
     if (activeTab === "qualifications") {
-      setActiveTab("basic-info")
+      setActiveTab("basic-info");
     } else if (activeTab === "employment") {
-      setActiveTab("qualifications")
+      setActiveTab("qualifications");
     } else if (activeTab === "higher-education") {
-      setActiveTab("employment")
+      setActiveTab("employment");
     }
-  }
+  };
 
   if (isFetching) {
     return (
@@ -280,7 +306,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-lg">Loading alumni data...</span>
       </div>
-    )
+    );
   }
 
   return (
@@ -289,7 +315,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
         <CardHeader>
           <CardTitle>{isEditing ? "Edit Alumni" : "Add New Alumni"}</CardTitle>
           <CardDescription>
-            {isEditing ? "Update alumni information in the system" : "Add a new alumni to the HSST database"}
+            {isEditing
+              ? "Update alumni information in the system"
+              : "Add a new alumni to the HSST database"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -298,7 +326,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               <TabsTrigger value="basic-info">Basic Info</TabsTrigger>
               <TabsTrigger value="qualifications">Qualifications</TabsTrigger>
               <TabsTrigger value="employment">Employment</TabsTrigger>
-              <TabsTrigger value="higher-education">Higher Education</TabsTrigger>
+              <TabsTrigger value="higher-education">
+                Higher Education
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic-info" className="space-y-4 mt-4">
@@ -307,7 +337,13 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   <Label htmlFor="name">
                     Full Name <span className="text-red-500">*</span>
                   </Label>
-                  <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="registrationNumber">
@@ -328,7 +364,13 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   <Label htmlFor="program">
                     Program <span className="text-red-500">*</span>
                   </Label>
-                  <Input id="program" name="program" value={formData.program} onChange={handleChange} required />
+                  <Input
+                    id="program"
+                    name="program"
+                    value={formData.program}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="passingYear">
@@ -336,7 +378,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   </Label>
                   <Select
                     value={formData.passingYear}
-                    onValueChange={(value) => handleSelectChange(value, "passingYear")}
+                    onValueChange={(value) =>
+                      handleSelectChange(value, "passingYear")
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select year" />
@@ -344,9 +388,13 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                     <SelectContent className="max-h-[200px] overflow-y-auto">
                       {Array.from(
                         { length: new Date().getFullYear() - 2014 },
-                        (_, i) => new Date().getFullYear() - i,
+                        (_, i) => {
+                          const startYear = 2016 + i;
+                          const endYear = (startYear + 1).toString().slice(-2);
+                          return `${startYear}-${endYear}`;
+                        }
                       ).map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
+                        <SelectItem key={year} value={year}>
                           {year}
                         </SelectItem>
                       ))}
@@ -389,7 +437,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="basicInfoImage">Upload ID Proof (optional)</Label>
+                <Label htmlFor="basicInfoImage">
+                  Upload ID Proof (optional)
+                </Label>
                 <Input
                   id="basicInfoImage"
                   name="basicInfoImage"
@@ -438,7 +488,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="qualificationImage">Upload Certificate (optional)</Label>
+                <Label htmlFor="qualificationImage">
+                  Upload Certificate (optional)
+                </Label>
                 <Input
                   id="qualificationImage"
                   name="qualificationImage"
@@ -446,21 +498,22 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {formData.qualifiedExams.certificateUrl && !formData.qualificationImage && (
-                  <div className="mt-2">
-                    <p className="text-sm text-muted-foreground">
-                      Current file:
-                      <a
-                        href={formData.qualifiedExams.certificateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 text-primary hover:underline"
-                      >
-                        View Certificate
-                      </a>
-                    </p>
-                  </div>
-                )}
+                {formData.qualifiedExams.certificateUrl &&
+                  !formData.qualificationImage && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        Current file:
+                        <a
+                          href={formData.qualifiedExams.certificateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-primary hover:underline"
+                        >
+                          View Certificate
+                        </a>
+                      </p>
+                    </div>
+                  )}
               </div>
             </TabsContent>
 
@@ -469,7 +522,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                 <Label htmlFor="employment.type">Employment Type</Label>
                 <Select
                   value={formData.employment.type || ""}
-                  onValueChange={(value) => handleSelectChange(value, "employment.type")}
+                  onValueChange={(value) =>
+                    handleSelectChange(value, "employment.type")
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select employment type" />
@@ -486,7 +541,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               {formData.employment.type === "Employed" && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="employment.employerName">Employer Name</Label>
+                    <Label htmlFor="employment.employerName">
+                      Employer Name
+                    </Label>
                     <Input
                       id="employment.employerName"
                       name="employment.employerName"
@@ -495,7 +552,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="employment.employerContact">Employer Contact</Label>
+                    <Label htmlFor="employment.employerContact">
+                      Employer Contact
+                    </Label>
                     <Input
                       id="employment.employerContact"
                       name="employment.employerContact"
@@ -504,7 +563,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="employment.employerEmail">Employer Email</Label>
+                    <Label htmlFor="employment.employerEmail">
+                      Employer Email
+                    </Label>
                     <Input
                       id="employment.employerEmail"
                       name="employment.employerEmail"
@@ -518,7 +579,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
 
               {formData.employment.type === "Self-Employed" && (
                 <div className="space-y-2">
-                  <Label htmlFor="employment.selfEmploymentDetails">Self-employment Details</Label>
+                  <Label htmlFor="employment.selfEmploymentDetails">
+                    Self-employment Details
+                  </Label>
                   <Textarea
                     id="employment.selfEmploymentDetails"
                     name="employment.selfEmploymentDetails"
@@ -530,7 +593,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="employmentImage">Upload Employment Proof (optional)</Label>
+                <Label htmlFor="employmentImage">
+                  Upload Employment Proof (optional)
+                </Label>
                 <Input
                   id="employmentImage"
                   name="employmentImage"
@@ -538,27 +603,30 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {formData.employment.documentUrl && !formData.employmentImage && (
-                  <div className="mt-2">
-                    <p className="text-sm text-muted-foreground">
-                      Current file:
-                      <a
-                        href={formData.employment.documentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 text-primary hover:underline"
-                      >
-                        View Document
-                      </a>
-                    </p>
-                  </div>
-                )}
+                {formData.employment.documentUrl &&
+                  !formData.employmentImage && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        Current file:
+                        <a
+                          href={formData.employment.documentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-primary hover:underline"
+                        >
+                          View Document
+                        </a>
+                      </p>
+                    </div>
+                  )}
               </div>
             </TabsContent>
 
             <TabsContent value="higher-education" className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label htmlFor="higherEducation.institutionName">Institution Name</Label>
+                <Label htmlFor="higherEducation.institutionName">
+                  Institution Name
+                </Label>
                 <Input
                   id="higherEducation.institutionName"
                   name="higherEducation.institutionName"
@@ -597,7 +665,11 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
         </CardContent>
         <CardFooter className="flex justify-between">
           {activeTab !== "basic-info" ? (
-            <Button type="button" variant="outline" onClick={(e) => handlePrevious(e)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={(e) => handlePrevious(e)}
+            >
               Previous
             </Button>
           ) : (
@@ -623,7 +695,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
         </CardFooter>
       </Card>
     </form>
-  )
+  );
 }
 
-export default AlumniForm
+export default AlumniForm;
