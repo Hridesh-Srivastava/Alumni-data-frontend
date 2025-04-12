@@ -243,8 +243,11 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                     <SelectTrigger>
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                      {Array.from(
+                        { length: new Date().getFullYear() - 2014 },
+                        (_, i) => new Date().getFullYear() - i,
+                      ).map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
