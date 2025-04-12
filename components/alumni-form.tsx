@@ -609,14 +609,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               Next
             </Button>
           ) : (
-            <Button
-              type="submit"
-              disabled={isLoading}
-              onClick={(e) => {
-                // Only for the submit button, we want the default form submission
-                // but we'll handle it in the handleSubmit function
-              }}
-            >
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

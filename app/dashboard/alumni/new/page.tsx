@@ -1,8 +1,9 @@
+// Fix: Remove the unused academicUnits variable
 "use client"
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -16,9 +17,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createAlumni } from "@/services/alumni-service"
-import { getAcademicUnits } from "@/services/academic-unit-service"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle } from "lucide-react"
 
 // Define the form schema
 const alumniFormSchema = z.object({
@@ -61,7 +61,7 @@ type AlumniFormValues = z.infer<typeof alumniFormSchema>
 
 export default function NewAlumniPage() {
   const [activeTab, setActiveTab] = useState("basic-information")
-  const [academicUnits, setAcademicUnits] = useState([])
+  // Removed the unused academicUnits variable
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -102,21 +102,6 @@ export default function NewAlumniPage() {
     },
   })
 
-  // Fetch academic units on component mount
-  useEffect(() => {
-    const fetchAcademicUnits = async () => {
-      try {
-        const data = await getAcademicUnits()
-        setAcademicUnits(data)
-      } catch (error) {
-        console.error("Error fetching academic units:", error)
-        toast.error("Failed to load academic units")
-      }
-    }
-
-    fetchAcademicUnits()
-  }, [])
-
   // Handle file changes
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -145,11 +130,11 @@ export default function NewAlumniPage() {
         academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
       }
 
-      console.log("Form data prepared:", formData);
+      console.log("Form data prepared:", formData)
 
       // Call the createAlumni function with the form data
       const result = await createAlumni(formData)
-      console.log("Alumni creation result:", result);
+      console.log("Alumni creation result:", result)
 
       toast.success("Alumni record created successfully")
       router.push("/dashboard/alumni")
@@ -244,7 +229,7 @@ export default function NewAlumniPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Enter the alumni's basic details</CardDescription>
+                  <CardDescription>Enter the alumni&apos;s basic details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField

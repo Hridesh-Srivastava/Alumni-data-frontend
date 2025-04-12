@@ -76,8 +76,6 @@ export default function StatisticsPage() {
       }))
     : []
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
-
   return (
     <DashboardLayout>
       <DashboardHeader title="Statistics" description="Visualize alumni data and trends" />
@@ -125,7 +123,10 @@ export default function StatisticsPage() {
                       dataKey="value"
                     >
                       {academicUnitData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"][index % 6]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value) => [`${value} alumni`, "Count"]} />
@@ -208,8 +209,8 @@ export default function StatisticsPage() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Pursuing Higher Education", value: 42 },
-                        { name: "Not Pursuing Higher Education", value: 58 },
+                        { name: "Pursuing Higher Education", value: stats?.higherEducationRate || 0 },
+                        { name: "Not Pursuing Higher Education", value: 100 - (stats?.higherEducationRate || 0) },
                       ]}
                       cx="50%"
                       cy="50%"
@@ -234,4 +235,3 @@ export default function StatisticsPage() {
     </DashboardLayout>
   )
 }
-

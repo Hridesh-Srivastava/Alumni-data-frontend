@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
           <CardDescription>
             {isSubmitted
               ? "Check your email for reset instructions"
-              : "Enter your email address and we'll send you instructions to reset your password"}
+              : "Enter your email address and we&apos;ll send you instructions to reset your password"}
           </CardDescription>
         </CardHeader>
 
@@ -119,7 +119,7 @@ export default function ForgotPasswordPage() {
             <div className="rounded-lg bg-primary/10 p-4 text-center">
               <Mail className="mx-auto mb-2 h-8 w-8 text-primary" />
               <p className="text-sm text-muted-foreground">
-                We've sent reset instructions to <strong>{email}</strong>. Please check your inbox and spam folder.
+                We&apos;ve sent reset instructions to <strong>{email}</strong>. Please check your inbox and spam folder.
               </p>
             </div>
             <Button variant="outline" className="w-full" onClick={() => router.push("/login")}>

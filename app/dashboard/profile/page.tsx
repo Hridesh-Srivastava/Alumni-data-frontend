@@ -7,12 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
 
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -39,62 +38,11 @@ export default function ProfilePage() {
 
       toast.success("Profile updated successfully")
     } catch (error) {
+      // Removed unused error variable
       toast.error("Failed to update profile")
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault()
-
-    // Basic validations
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast.error("Passwords do not match")
-      return
-    }
-
-    if (formData.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters")
-      return
-    }
-
-    if (!formData.currentPassword) {
-      toast.error("Current password is required")
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      // Send both current and new password
-      await updateProfile({
-        currentPassword: formData.currentPassword,
-        password: formData.newPassword,
-      })
-
-      toast.success("Password changed successfully")
-
-      // Reset password fields
-      setFormData((prev) => ({
-        ...prev,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      }))
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(`Failed to change password: ${error.message}`)
-      } else {
-        toast.error("Failed to change password")
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword)
   }
 
   return (
@@ -136,4 +84,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-

@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AlertCircle, CheckCircle2, Loader2, Terminal } from "lucide-react"
+import { AlertCircle, Loader2, Terminal } from "lucide-react"
 import { checkBackendStatus } from "@/services/backend-service"
-import axios from "axios"
+import { Button } from "@/components/ui/button"
 
 export function BackendStatus() {
   const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading")
@@ -65,9 +65,9 @@ export function BackendStatus() {
       for (const endpoint of endpoints) {
         try {
           const start = performance.now()
-          await axios.get(endpoint.url, {
-            timeout: 3000,
-            validateStatus: () => true, // Accept any status code
+          await fetch(endpoint.url, {
+            mode: "no-cors",
+            signal: AbortSignal.timeout(3000),
           })
           const end = performance.now()
           results += `✅ ${endpoint.name} (${Math.round(end - start)}ms)\n`
@@ -128,47 +128,45 @@ export function BackendStatus() {
               <p className="text-xs mt-2">Backend URL: {API_URL}</p>
               <p className="text-xs mt-1">Last checked: {lastChecked.toLocaleTimeString()}</p>
               <div className="flex gap-2 mt-2">
-                <button
+                <Button
                   onClick={checkConnection}
                   className="px-2 py-1 text-xs bg-destructive/20 hover:bg-destructive/30 rounded"
                 >
                   Retry Connection
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setShowTroubleshooting(!showTroubleshooting)}
                   className="px-2 py-1 text-xs bg-destructive/20 hover:bg-destructive/30 rounded"
                 >
                   {showTroubleshooting ? "Hide Troubleshooting" : "Show Troubleshooting"}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={runNetworkDiagnostics}
                   className="px-2 py-1 text-xs bg-destructive/20 hover:bg-destructive/30 rounded flex items-center"
                 >
                   <Terminal className="h-3 w-3 mr-1" /> Run Diagnostics
-                </button>
+                </Button>
               </div>
 
               {showTroubleshooting && (
-                <div className="mt-3 p-3 border border-destructive/30 rounded text-xs">
+                <div className="mt-3">
                   <h6 className="font-medium mb-1">Troubleshooting Steps:</h6>
-                  <ol className="list-decimal pl-4 space-y-1">
-                    <li>Ensure backend server is running on port 5000</li>
-                    <li>Check MongoDB connection string in backend .env file</li>
-                    <li>Verify CORS settings in backend server.js allow requests from {window.location.origin}</li>
-                    <li>Try restarting the backend server</li>
-                    <li>Check if NEXT_PUBLIC_API_URL is set correctly to {API_URL}</li>
-                    <li>Check if your firewall is blocking connections to port 5000</li>
-                    <li>
-                      Try running the backend with <code>npm start</code> and check for any errors
-                    </li>
+                  <ol className="list-decimal list-inside text-xs space-y-1">
+                    <li>Check if the backend server is running locally on port 5000</li>
+                    <li>Verify that the NEXT_PUBLIC_API_URL environment variable is set correctly</li>
+                    <li>Check for CORS issues in the browser console</li>
+                    <li>Ensure MongoDB is running and accessible</li>
+                    <li>Check for network connectivity issues</li>
                   </ol>
-                </div>
-              )}
 
-              {debugInfo && (
-                <div className="mt-3 p-3 border border-destructive/30 rounded text-xs bg-black/80 text-white font-mono whitespace-pre-wrap">
-                  <h6 className="font-medium mb-1">Diagnostic Information:</h6>
-                  {debugInfo}
+                  {debugInfo && (
+                    <div className="mt-2">
+                      <h6 className="font-medium mb-1">Diagnostic Information:</h6>
+                      <pre className="text-xs bg-black/10 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                        {debugInfo}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -179,14 +177,18 @@ export function BackendStatus() {
   }
 
   return (
-    <div className="mb-4 p-4 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950">
+    <div className="mb-4 p-4 border border-green-500/50 rounded-lg bg-green-50 dark:bg-green-950/20">
       <div className="flex items-start">
-        <CheckCircle2 className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+        <div className="h-5 w-5 mr-2 rounded-full bg-green-500 flex items-center justify-center">
+          <div className="h-2 w-2 rounded-full bg-white"></div>
+        </div>
         <div>
-          <h5 className="font-medium text-green-600 dark:text-green-400">Backend Connected</h5>
+          <h5 className="font-medium text-green-700 dark:text-green-300">Backend Connected</h5>
           <p className="text-sm text-green-600 dark:text-green-400">
-            Successfully connected to the backend server.
-            <span className="text-xs block mt-1">Last checked: {lastChecked.toLocaleTimeString()}</span>
+            Successfully connected to the backend server at {API_URL}
+          </p>
+          <p className="text-xs text-green-500 dark:text-green-500 mt-1">
+            Last checked: {lastChecked.toLocaleTimeString()}
           </p>
         </div>
       </div>
@@ -194,3 +196,4 @@ export function BackendStatus() {
   )
 }
 
+export default BackendStatus

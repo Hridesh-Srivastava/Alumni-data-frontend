@@ -33,6 +33,7 @@ export default function ViewAlumniPage() {
           setAlumni(data)
         }
       } catch (error) {
+        // Removed unused error variable
         toast.error("Failed to fetch alumni details")
       } finally {
         setIsLoading(false)
