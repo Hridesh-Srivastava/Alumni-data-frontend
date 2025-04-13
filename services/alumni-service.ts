@@ -460,7 +460,32 @@ export const deleteAlumni = async (id, token) => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.delete(`/alumni/${id}`)
+      // Get token from parameter or localStorage if not provided
+      if (!token) {
+        token = localStorage.getItem("token")
+      }
+
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.")
+      }
+
+      console.log("Deleting alumni with ID:", id)
+      console.log("Using token:", token.substring(0, 10) + "...")
+
+      // Get the API URL
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+
+      // Use direct axios call instead of api instance
+      const response = await axios({
+        method: "delete",
+        url: `${API_URL}/alumni/${id}`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      console.log("Delete response:", response.data)
 
       // Also delete from localStorage for development convenience
       const mockAlumni = getStoredAlumni()
@@ -488,6 +513,14 @@ export const deleteAlumni = async (id, token) => {
     }
   } catch (error) {
     console.error("Error deleting alumni:", error)
+
+    // Log more detailed error information
+    if (axios.isAxiosError(error)) {
+      console.error("Status:", error.response?.status)
+      console.error("Response data:", error.response?.data)
+      console.error("Request config:", error.config)
+    }
+
     throw error
   }
 }

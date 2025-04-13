@@ -1,8 +1,9 @@
 "use client"
 
+// Import the Dialog components and Trash2 icon
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { getAlumni } from "@/services/alumni-service"
+import { getAlumni, deleteAlumni } from "@/services/alumni-service"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,8 +14,18 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Trash2 } from "lucide-react"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
+import axios from "axios"
 
 interface Alumni {
   _id: string
@@ -47,6 +58,11 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     totalPages: 1,
     total: 0,
   })
+
+  // Add state for delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [alumniToDelete, setAlumniToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const fetchAlumni = async () => {
@@ -107,6 +123,45 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     setPagination({ ...pagination, currentPage: page })
   }
 
+  // Add handlers for delete functionality
+  const handleDeleteClick = (id: string) => {
+    setAlumniToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!alumniToDelete) return
+
+    setIsDeleting(true)
+    try {
+      console.log("Attempting to delete alumni with ID:", alumniToDelete)
+      console.log("Using token:", token ? "Token exists" : "No token")
+
+      await deleteAlumni(alumniToDelete, token)
+      setAlumni((prev) => prev.filter((alumnus) => alumnus._id !== alumniToDelete))
+      toast.success("Alumni deleted successfully")
+      setDeleteDialogOpen(false)
+    } catch (error) {
+      console.error("Error deleting alumni:", error)
+
+      // More specific error message based on the error
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 401) {
+          toast.error("Authentication failed. Please log in again.")
+        } else if (error.response.status === 403) {
+          toast.error("You don't have permission to delete this alumni.")
+        } else {
+          toast.error(`Failed to delete alumni: ${error.response.data?.message || error.message}`)
+        }
+      } else {
+        toast.error("Failed to delete alumni")
+      }
+    } finally {
+      setIsDeleting(false)
+      setAlumniToDelete(null)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -158,6 +213,9 @@ export function AlumniTable({ filter }: AlumniTableProps) {
                       </Button>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/dashboard/alumni/${alumnus._id}/edit`}>Edit</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteClick(alumnus._id)}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -220,6 +278,33 @@ export function AlumniTable({ filter }: AlumniTableProps) {
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Add delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Alumni</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this alumni? This action can't be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
