@@ -455,12 +455,53 @@ export const updateAlumni = async (id, alumniData, token) => {
 // Function to delete an alumni
 export const deleteAlumni = async (id, token) => {
   try {
+    console.log("Starting delete operation for alumni ID:", id)
+    console.log("Token provided:", token ? `${token.slice(0, 15)}...` : "No token")
+
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
+    console.log("Backend available:", isBackendAvailable)
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const response = await api.delete(`/alumni/${id}`)
+      // Make sure we have a token
+      if (!token) {
+        console.log("No token provided, checking localStorage")
+        token = localStorage.getItem("token")
+        console.log("Token from localStorage:", token ? `${token.slice(0, 15)}...` : "No token in localStorage")
+      }
+
+      if (!token) {
+        console.error("No authentication token available")
+        throw new Error("Authentication required. Please log in again.")
+      }
+
+      // Use direct axios call with proper authorization
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hsst-alumni-backend.vercel.app/api"
+      console.log("Using API URL:", API_URL)
+
+      // Ensure token is properly formatted
+      const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`
+      console.log("Authorization header:", authHeader.slice(0, 20) + "...")
+
+      // Log the full request details for debugging
+      console.log("Making DELETE request to:", `${API_URL}/alumni/${id}`)
+      console.log("With headers:", {
+        "Content-Type": "application/json",
+        Authorization: authHeader.slice(0, 20) + "...",
+      })
+
+      const response = await axios({
+        method: "delete",
+        url: `${API_URL}/alumni/${id}`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        timeout: 15000, // Increased timeout
+      })
+
+      console.log("Delete response:", response.data)
 
       // Also delete from localStorage for development convenience
       const mockAlumni = getStoredAlumni()
@@ -501,7 +542,7 @@ export const getStats = async (token) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       console.log("Fetching stats from backend API")
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hsst-alumni-backend.vercel.app/api"
 
       // Important fix: Use the correct endpoint for stats
       // The issue was that the route handler for /stats is defined before /search
