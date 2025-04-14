@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { getAlumni, deleteAlumni } from "@/services/alumni-service"
+import { getAlumni } from "@/services/alumni-service"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,17 +13,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Loader2, AlertCircle, Eye, Pencil, Trash2 } from "lucide-react"
-import { toast } from "sonner"
+import { Loader2, AlertCircle, Eye, Pencil } from "lucide-react"
 import Link from "next/link"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 
 interface Alumni {
   _id: string
@@ -57,11 +47,6 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     totalPages: 1,
     total: 0,
   })
-
-  // State for delete confirmation dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [alumniToDelete, setAlumniToDelete] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   // Debug token
   useEffect(() => {
@@ -127,73 +112,6 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     setPagination({ ...pagination, currentPage: page })
   }
 
-  // Function to handle delete button click
-  const handleDeleteClick = (id: string) => {
-    if (!isAuthenticated || !token) {
-      toast.error("You must be logged in to delete records")
-      return
-    }
-    setAlumniToDelete(id)
-    setDeleteDialogOpen(true)
-  }
-
-  // Function to confirm and execute deletion
-  const confirmDelete = async () => {
-    if (!alumniToDelete) return
-
-    if (!isAuthenticated || !token) {
-      toast.error("Authentication required. Please log in again.")
-      setDeleteDialogOpen(false)
-      return
-    }
-
-    setIsDeleting(true)
-    try {
-      // Get the current token from localStorage to ensure it's fresh
-      const currentToken = localStorage.getItem("token")
-
-      // Log token for debugging (remove in production)
-      console.log("Using token for delete:", currentToken ? `${currentToken.slice(0, 15)}...` : "No token found")
-
-      // Use the most up-to-date token
-      const tokenToUse = currentToken || token
-
-      if (!tokenToUse) {
-        throw new Error("No authentication token available")
-      }
-
-      await deleteAlumni(alumniToDelete, tokenToUse)
-      toast.success("Alumni deleted successfully")
-
-      // Update the alumni list by removing the deleted item
-      setAlumni(alumni.filter((a) => a._id !== alumniToDelete))
-      setDeleteDialogOpen(false)
-    } catch (error) {
-      console.error("Error deleting alumni:", error)
-
-      // Handle different error types
-      if (error.response?.status === 401) {
-        toast.error("Unauthorized: Please log in again")
-        // Attempt to refresh token or redirect to login
-        if (refreshToken) {
-          try {
-            await refreshToken()
-            toast.info("Session refreshed. Please try again.")
-          } catch (refreshError) {
-            console.error("Failed to refresh token:", refreshError)
-          }
-        }
-      } else if (error.response?.status === 404) {
-        toast.error("Alumni record not found")
-      } else {
-        toast.error(`Failed to delete alumni record: ${error.message || "Unknown error"}`)
-      }
-    } finally {
-      setIsDeleting(false)
-      setAlumniToDelete(null)
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -251,15 +169,6 @@ export function AlumniTable({ filter }: AlumniTableProps) {
                           <Pencil className="h-4 w-4 mr-1" />
                           Edit
                         </Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteClick(alumnus._id)}
-                        disabled={!isAuthenticated}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1 text-destructive" />
-                        Delete
                       </Button>
                     </div>
                   </TableCell>
@@ -322,33 +231,6 @@ export function AlumniTable({ filter }: AlumniTableProps) {
           </PaginationContent>
         </Pagination>
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Alumni Record</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this alumni record? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
