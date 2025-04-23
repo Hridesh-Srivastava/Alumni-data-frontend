@@ -1,4 +1,3 @@
-// Fix: Remove the unused academicUnits variable
 "use client"
 
 import type React from "react"
@@ -15,7 +14,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createAlumni } from "@/services/alumni-service"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
@@ -60,8 +58,6 @@ const alumniFormSchema = z.object({
 type AlumniFormValues = z.infer<typeof alumniFormSchema>
 
 export default function NewAlumniPage() {
-  const [activeTab, setActiveTab] = useState("basic-information")
-  // Removed the unused academicUnits variable
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -161,24 +157,11 @@ export default function NewAlumniPage() {
     return `${year - 1}-${year.toString().slice(-2)}`
   })
 
-  // Handle tab navigation
-  const goToNextTab = () => {
-    if (activeTab === "basic-information") {
-      setActiveTab("qualifications")
-    } else if (activeTab === "qualifications") {
-      setActiveTab("employment-education")
-    } else if (activeTab === "employment-education") {
-      setActiveTab("review")
-    }
-  }
-
-  const goToPreviousTab = () => {
-    if (activeTab === "review") {
-      setActiveTab("employment-education")
-    } else if (activeTab === "employment-education") {
-      setActiveTab("qualifications")
-    } else if (activeTab === "qualifications") {
-      setActiveTab("basic-information")
+  // Scroll to section
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" })
     }
   }
 
@@ -194,560 +177,518 @@ export default function NewAlumniPage() {
         </Alert>
       )}
 
+      {/* Progress Bar */}
+      <div className="mb-8 flex justify-center">
+        <div className="grid w-full max-w-4xl grid-cols-4 gap-4">
+          <div className="flex flex-col items-center" onClick={() => scrollToSection("basic-information")}>
+            <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground">
+              1
+            </div>
+            <span className="mt-2 text-center text-sm">Basic Information</span>
+          </div>
+          <div className="flex flex-col items-center" onClick={() => scrollToSection("qualifications")}>
+            <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground">
+              2
+            </div>
+            <span className="mt-2 text-center text-sm">Qualifications</span>
+          </div>
+          <div className="flex flex-col items-center" onClick={() => scrollToSection("employment-education")}>
+            <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground">
+              3
+            </div>
+            <span className="mt-2 text-center text-sm">Employment & Education</span>
+          </div>
+          <div className="flex flex-col items-center" onClick={() => scrollToSection("review")}>
+            <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground">
+              4
+            </div>
+            <span className="mt-2 text-center text-sm">Review</span>
+          </div>
+        </div>
+      </div>
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic-information">
-                <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  1
-                </span>
-                Basic Information
-              </TabsTrigger>
-              <TabsTrigger value="qualifications">
-                <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  2
-                </span>
-                Qualifications
-              </TabsTrigger>
-              <TabsTrigger value="employment-education">
-                <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  3
-                </span>
-                Employment & Education
-              </TabsTrigger>
-              <TabsTrigger value="review">
-                <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  4
-                </span>
-                Review
-              </TabsTrigger>
-            </TabsList>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Basic Information Section */}
+          <Card id="basic-information">
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+              <CardDescription>Enter the alumni&apos;s basic details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Basic Information Tab */}
-            <TabsContent value="basic-information">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Enter the alumni&apos;s basic details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              <FormField
+                control={form.control}
+                name="program"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Program*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. BCA, B.Tech, BSc." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="passingYear"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Passing Year*</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select passing year" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {passingYears.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="registrationNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Registration Number*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. DD2017304002" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Basic Info File Upload */}
+              <div className="space-y-2">
+                <FormLabel>Upload Basic Info Document</FormLabel>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleFileChange(e, setBasicInfoImage)}
+                    className="flex-1"
                   />
+                  {basicInfoImage && <div className="text-sm text-green-600">File selected: {basicInfoImage.name}</div>}
+                </div>
+                <FormDescription>Upload any supporting document for basic information (optional)</FormDescription>
+              </div>
+            </CardContent>
+          </Card>
 
-                  <FormField
-                    control={form.control}
-                    name="program"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Program*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. BCA, B.Tech, BSc." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+          {/* Qualifications Section */}
+          <Card id="qualifications">
+            <CardHeader>
+              <CardTitle>Contact Details & Qualifications</CardTitle>
+              <CardDescription>Enter contact information and qualification details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <h3 className="text-lg font-medium">Contact Details</h3>
+              <FormField
+                control={form.control}
+                name="contactDetails.email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="email@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="contactDetails.phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="contactDetails.address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Current address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <h3 className="mt-6 text-lg font-medium">Qualified Exams</h3>
+              <FormField
+                control={form.control}
+                name="qualifiedExams.examName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Exam Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. GATE, NET, CAT" {...field} />
+                    </FormControl>
+                    <FormDescription>Leave blank if not applicable</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="qualifiedExams.rollNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Roll Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Exam roll number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Qualification File Upload */}
+              <div className="space-y-2">
+                <FormLabel>Upload Qualification Certificate</FormLabel>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleFileChange(e, setQualificationImage)}
+                    className="flex-1"
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="passingYear"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Passing Year*</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select passing year" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {passingYears.map((year) => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="registrationNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Registration Number*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. DD2017304002" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Basic Info File Upload */}
-                  <div className="space-y-2">
-                    <FormLabel>Upload Basic Info Document</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => handleFileChange(e, setBasicInfoImage)}
-                        className="flex-1"
-                      />
-                      {basicInfoImage && (
-                        <div className="text-sm text-green-600">File selected: {basicInfoImage.name}</div>
-                      )}
-                    </div>
-                    <FormDescription>Upload any supporting document for basic information (optional)</FormDescription>
-                  </div>
-
-                  <div className="flex justify-between pt-4">
-                    <Button variant="outline" type="button" onClick={() => router.back()}>
-                      Cancel
-                    </Button>
-                    <Button type="button" onClick={goToNextTab}>
-                      Next
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Contact Details Tab */}
-            <TabsContent value="qualifications">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contact Details & Qualifications</CardTitle>
-                  <CardDescription>Enter contact information and qualification details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <h3 className="text-lg font-medium">Contact Details</h3>
-                  <FormField
-                    control={form.control}
-                    name="contactDetails.email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="email@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="contactDetails.phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Phone number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="contactDetails.address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Current address" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <h3 className="mt-6 text-lg font-medium">Qualified Exams</h3>
-                  <FormField
-                    control={form.control}
-                    name="qualifiedExams.examName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Exam Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. GATE, NET, CAT" {...field} />
-                        </FormControl>
-                        <FormDescription>Leave blank if not applicable</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="qualifiedExams.rollNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Roll Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Exam roll number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Qualification File Upload */}
-                  <div className="space-y-2">
-                    <FormLabel>Upload Qualification Certificate</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => handleFileChange(e, setQualificationImage)}
-                        className="flex-1"
-                      />
-                      {qualificationImage && (
-                        <div className="text-sm text-green-600">File selected: {qualificationImage.name}</div>
-                      )}
-                    </div>
-                    <FormDescription>Upload certificate for qualified exams (optional)</FormDescription>
-                  </div>
-
-                  <div className="flex justify-between pt-4">
-                    <Button variant="outline" type="button" onClick={goToPreviousTab}>
-                      Previous
-                    </Button>
-                    <Button type="button" onClick={goToNextTab}>
-                      Next
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Employment & Education Tab */}
-            <TabsContent value="employment-education">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Employment & Higher Education</CardTitle>
-                  <CardDescription>Enter employment and higher education details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <h3 className="text-lg font-medium">Employment</h3>
-                  <FormField
-                    control={form.control}
-                    name="employment.type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Employment Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select employment type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Employed">Employed</SelectItem>
-                            <SelectItem value="Self-employed">Self-employed</SelectItem>
-                            <SelectItem value="Unemployed">Unemployed</SelectItem>
-                            <SelectItem value="Studying">Studying</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch("employment.type") === "Employed" && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="employment.employerName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Employer Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Company/Organization name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="employment.employerContact"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Employer Contact</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Contact number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="employment.employerEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Employer Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="Email address" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </>
+                  {qualificationImage && (
+                    <div className="text-sm text-green-600">File selected: {qualificationImage.name}</div>
                   )}
+                </div>
+                <FormDescription>Upload certificate for qualified exams (optional)</FormDescription>
+              </div>
+            </CardContent>
+          </Card>
 
-                  {form.watch("employment.type") === "Self-employed" && (
-                    <FormField
-                      control={form.control}
-                      name="employment.selfEmploymentDetails"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Self-employment Details</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Details about your business/freelance work" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+          {/* Employment & Education Section */}
+          <Card id="employment-education">
+            <CardHeader>
+              <CardTitle>Employment & Higher Education</CardTitle>
+              <CardDescription>Enter employment and higher education details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <h3 className="text-lg font-medium">Employment</h3>
+              <FormField
+                control={form.control}
+                name="employment.type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employment Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employment type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Employed">Employed</SelectItem>
+                        <SelectItem value="Self-employed">Self-employed</SelectItem>
+                        <SelectItem value="Unemployed">Unemployed</SelectItem>
+                        <SelectItem value="Studying">Studying</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("employment.type") === "Employed" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="employment.employerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Employer Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Company/Organization name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="employment.employerContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Employer Contact</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Contact number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="employment.employerEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Employer Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              {form.watch("employment.type") === "Self-employed" && (
+                <FormField
+                  control={form.control}
+                  name="employment.selfEmploymentDetails"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Self-employment Details</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Details about your business/freelance work" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
+                />
+              )}
 
-                  {/* Employment File Upload */}
-                  <div className="space-y-2">
-                    <FormLabel>Upload Employment Document</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => handleFileChange(e, setEmploymentImage)}
-                        className="flex-1"
-                      />
-                      {employmentImage && (
-                        <div className="text-sm text-green-600">File selected: {employmentImage.name}</div>
-                      )}
-                    </div>
-                    <FormDescription>Upload employment proof document (optional)</FormDescription>
-                  </div>
-
-                  <h3 className="mt-6 text-lg font-medium">Higher Education</h3>
-                  <FormField
-                    control={form.control}
-                    name="higherEducation.institutionName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Institution Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Name of institution" {...field} />
-                        </FormControl>
-                        <FormDescription>Leave blank if not applicable</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              {/* Employment File Upload */}
+              <div className="space-y-2">
+                <FormLabel>Upload Employment Document</FormLabel>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleFileChange(e, setEmploymentImage)}
+                    className="flex-1"
                   />
+                  {employmentImage && (
+                    <div className="text-sm text-green-600">File selected: {employmentImage.name}</div>
+                  )}
+                </div>
+                <FormDescription>Upload employment proof document (optional)</FormDescription>
+              </div>
 
-                  <FormField
-                    control={form.control}
-                    name="higherEducation.programName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Program Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. M.Tech, MBA, Ph.D" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <h3 className="mt-6 text-lg font-medium">Higher Education</h3>
+              <FormField
+                control={form.control}
+                name="higherEducation.institutionName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Institution Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Name of institution" {...field} />
+                    </FormControl>
+                    <FormDescription>Leave blank if not applicable</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <div className="flex justify-between pt-4">
-                    <Button variant="outline" type="button" onClick={goToPreviousTab}>
-                      Previous
-                    </Button>
-                    <Button type="button" onClick={goToNextTab}>
-                      Next
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              <FormField
+                control={form.control}
+                name="higherEducation.programName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Program Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. M.Tech, MBA, Ph.D" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
 
-            {/* Review Tab */}
-            <TabsContent value="review">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Review Information</CardTitle>
-                  <CardDescription>Review all information before submitting</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium">Basic Information</h3>
-                      <div className="mt-2 rounded-lg bg-muted p-4">
-                        <div className="grid gap-2">
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Name:</p>
-                            <p className="col-span-2">{form.watch("name")}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Academic Unit:</p>
-                            <p className="col-span-2">Himalayan School of Science and Technology</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Program:</p>
-                            <p className="col-span-2">{form.watch("program")}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Passing Year:</p>
-                            <p className="col-span-2">{form.watch("passingYear")}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Registration Number:</p>
-                            <p className="col-span-2">{form.watch("registrationNumber")}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Basic Info Document:</p>
-                            <p className="col-span-2">{basicInfoImage ? basicInfoImage.name : "Not provided"}</p>
-                          </div>
-                        </div>
+          {/* Review Section */}
+          <Card id="review">
+            <CardHeader>
+              <CardTitle>Review Information</CardTitle>
+              <CardDescription>Review all information before submitting</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium">Basic Information</h3>
+                  <div className="mt-2 rounded-lg bg-muted p-4">
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Name:</p>
+                        <p className="col-span-2">{form.watch("name")}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Academic Unit:</p>
+                        <p className="col-span-2">Himalayan School of Science and Technology</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Program:</p>
+                        <p className="col-span-2">{form.watch("program")}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Passing Year:</p>
+                        <p className="col-span-2">{form.watch("passingYear")}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Registration Number:</p>
+                        <p className="col-span-2">{form.watch("registrationNumber")}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Basic Info Document:</p>
+                        <p className="col-span-2">{basicInfoImage ? basicInfoImage.name : "Not provided"}</p>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    <div>
-                      <h3 className="text-lg font-medium">Contact Details</h3>
-                      <div className="mt-2 rounded-lg bg-muted p-4">
-                        <div className="grid gap-2">
+                <div>
+                  <h3 className="text-lg font-medium">Contact Details</h3>
+                  <div className="mt-2 rounded-lg bg-muted p-4">
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Email:</p>
+                        <p className="col-span-2">{form.watch("contactDetails.email") || "Not provided"}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Phone:</p>
+                        <p className="col-span-2">{form.watch("contactDetails.phone") || "Not provided"}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Address:</p>
+                        <p className="col-span-2">{form.watch("contactDetails.address") || "Not provided"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium">Qualifications</h3>
+                  <div className="mt-2 rounded-lg bg-muted p-4">
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Exam Name:</p>
+                        <p className="col-span-2">{form.watch("qualifiedExams.examName") || "Not provided"}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Roll Number:</p>
+                        <p className="col-span-2">{form.watch("qualifiedExams.rollNumber") || "Not provided"}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Certificate:</p>
+                        <p className="col-span-2">{qualificationImage ? qualificationImage.name : "Not provided"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium">Employment</h3>
+                  <div className="mt-2 rounded-lg bg-muted p-4">
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Type:</p>
+                        <p className="col-span-2">{form.watch("employment.type") || "Not provided"}</p>
+                      </div>
+                      {form.watch("employment.type") === "Employed" && (
+                        <>
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Employer:</p>
+                            <p className="col-span-2">{form.watch("employment.employerName") || "Not provided"}</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            <p className="font-medium">Contact:</p>
+                            <p className="col-span-2">{form.watch("employment.employerContact") || "Not provided"}</p>
+                          </div>
                           <div className="grid grid-cols-3 gap-1">
                             <p className="font-medium">Email:</p>
-                            <p className="col-span-2">{form.watch("contactDetails.email") || "Not provided"}</p>
+                            <p className="col-span-2">{form.watch("employment.employerEmail") || "Not provided"}</p>
                           </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Phone:</p>
-                            <p className="col-span-2">{form.watch("contactDetails.phone") || "Not provided"}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Address:</p>
-                            <p className="col-span-2">{form.watch("contactDetails.address") || "Not provided"}</p>
-                          </div>
+                        </>
+                      )}
+                      {form.watch("employment.type") === "Self-employed" && (
+                        <div className="grid grid-cols-3 gap-1">
+                          <p className="font-medium">Details:</p>
+                          <p className="col-span-2">
+                            {form.watch("employment.selfEmploymentDetails") || "Not provided"}
+                          </p>
                         </div>
+                      )}
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Document:</p>
+                        <p className="col-span-2">{employmentImage ? employmentImage.name : "Not provided"}</p>
                       </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium">Qualifications</h3>
-                      <div className="mt-2 rounded-lg bg-muted p-4">
-                        <div className="grid gap-2">
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Exam Name:</p>
-                            <p className="col-span-2">{form.watch("qualifiedExams.examName") || "Not provided"}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Roll Number:</p>
-                            <p className="col-span-2">{form.watch("qualifiedExams.rollNumber") || "Not provided"}</p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Certificate:</p>
-                            <p className="col-span-2">
-                              {qualificationImage ? qualificationImage.name : "Not provided"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium">Employment</h3>
-                      <div className="mt-2 rounded-lg bg-muted p-4">
-                        <div className="grid gap-2">
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Type:</p>
-                            <p className="col-span-2">{form.watch("employment.type") || "Not provided"}</p>
-                          </div>
-                          {form.watch("employment.type") === "Employed" && (
-                            <>
-                              <div className="grid grid-cols-3 gap-1">
-                                <p className="font-medium">Employer:</p>
-                                <p className="col-span-2">{form.watch("employment.employerName") || "Not provided"}</p>
-                              </div>
-                              <div className="grid grid-cols-3 gap-1">
-                                <p className="font-medium">Contact:</p>
-                                <p className="col-span-2">
-                                  {form.watch("employment.employerContact") || "Not provided"}
-                                </p>
-                              </div>
-                              <div className="grid grid-cols-3 gap-1">
-                                <p className="font-medium">Email:</p>
-                                <p className="col-span-2">{form.watch("employment.employerEmail") || "Not provided"}</p>
-                              </div>
-                            </>
-                          )}
-                          {form.watch("employment.type") === "Self-employed" && (
-                            <div className="grid grid-cols-3 gap-1">
-                              <p className="font-medium">Details:</p>
-                              <p className="col-span-2">
-                                {form.watch("employment.selfEmploymentDetails") || "Not provided"}
-                              </p>
-                            </div>
-                          )}
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Document:</p>
-                            <p className="col-span-2">{employmentImage ? employmentImage.name : "Not provided"}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium">Higher Education</h3>
-                      <div className="mt-2 rounded-lg bg-muted p-4">
-                        <div className="grid gap-2">
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Institution:</p>
-                            <p className="col-span-2">
-                              {form.watch("higherEducation.institutionName") || "Not provided"}
-                            </p>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            <p className="font-medium">Program:</p>
-                            <p className="col-span-2">{form.watch("higherEducation.programName") || "Not provided"}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between pt-4">
-                      <Button variant="outline" type="button" onClick={goToPreviousTab}>
-                        Previous
-                      </Button>
-                      <Button type="submit" disabled={isLoading}>
-                        {isLoading ? "Submitting..." : "Submit"}
-                      </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium">Higher Education</h3>
+                  <div className="mt-2 rounded-lg bg-muted p-4">
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Institution:</p>
+                        <p className="col-span-2">{form.watch("higherEducation.institutionName") || "Not provided"}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <p className="font-medium">Program:</p>
+                        <p className="col-span-2">{form.watch("higherEducation.programName") || "Not provided"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" type="button" onClick={() => router.back()}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? "Submitting..." : "Submit"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </form>
       </Form>
     </div>

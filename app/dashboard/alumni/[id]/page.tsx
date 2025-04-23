@@ -8,9 +8,10 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { getAlumniById } from "@/services/alumni-service"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Loader2, Printer } from "lucide-react"
+import { ArrowLeft, Loader2, Printer, FileDown } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import * as XLSX from "xlsx"
 
 export default function ViewAlumniPage() {
   const { isAuthenticated, loading, token } = useAuth()
@@ -347,6 +348,112 @@ export default function ViewAlumniPage() {
     printWindow.document.close()
   }
 
+  const handleExcelDownload = () => {
+    try {
+      // Create data for Excel file
+      const excelData = [
+        ["HSST Alumni Data Collection"],
+        ["Alumni Details Report"],
+        ["Generated on:", new Date().toLocaleDateString()],
+        [""],
+
+        ["Basic Information"],
+        ["Full Name", alumni.name || "Not provided"],
+        ["Registration Number", alumni.registrationNumber || "Not provided"],
+        ["Program", alumni.program || "Not provided"],
+        ["Passing Year", alumni.passingYear || "Not provided"],
+        ["Academic Unit", alumni.academicUnit || "Not provided"],
+        [""],
+
+        ["Contact Details"],
+        ["Email", alumni.contactDetails?.email || "Not provided"],
+        ["Phone", alumni.contactDetails?.phone || "Not provided"],
+        ["Address", alumni.contactDetails?.address || "Not provided"],
+        [""],
+      ]
+
+      // Add Qualifications if available
+      if (alumni.qualifiedExams?.examName) {
+        excelData.push(
+          ["Qualifications"],
+          ["Exam Name", alumni.qualifiedExams?.examName || "Not provided"],
+          ["Roll Number", alumni.qualifiedExams?.rollNumber || "Not provided"],
+          [""],
+        )
+      }
+
+      // Add Employment if available
+      if (alumni.employment?.type) {
+        excelData.push(["Employment"], ["Employment Type", alumni.employment?.type || "Not provided"])
+
+        if (alumni.employment?.type === "Employed") {
+          excelData.push(
+            ["Employer Name", alumni.employment?.employerName || "Not provided"],
+            ["Employer Contact", alumni.employment?.employerContact || "Not provided"],
+            ["Employer Email", alumni.employment?.employerEmail || "Not provided"],
+          )
+        }
+
+        if (alumni.employment?.type === "Self-employed") {
+          excelData.push(["Self-employment Details", alumni.employment?.selfEmploymentDetails || "Not provided"])
+        }
+
+        excelData.push([""])
+      }
+
+      // Add Higher Education if available
+      if (alumni.higherEducation?.institutionName) {
+        excelData.push(
+          ["Higher Education"],
+          ["Institution Name", alumni.higherEducation?.institutionName || "Not provided"],
+          ["Program", alumni.higherEducation?.programName || "Not provided"],
+          [""],
+        )
+      }
+
+      // Add Documents if available
+      const documentLinks = []
+      if (alumni.qualifiedExams?.certificateUrl) {
+        documentLinks.push(["Qualification Certificate", alumni.qualifiedExams.certificateUrl])
+      }
+      if (alumni.employment?.documentUrl) {
+        documentLinks.push(["Employment Document", alumni.employment.documentUrl])
+      }
+      if (alumni.higherEducation?.documentUrl) {
+        documentLinks.push(["Higher Education Document", alumni.higherEducation.documentUrl])
+      }
+      if (alumni.basicInfoImageUrl) {
+        documentLinks.push(["ID Proof", alumni.basicInfoImageUrl])
+      }
+
+      if (documentLinks.length > 0) {
+        excelData.push(["Documents"])
+        documentLinks.forEach((doc) => {
+          excelData.push(doc)
+        })
+      }
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.aoa_to_sheet(excelData)
+
+      // Set column widths
+      const colWidths = [{ wch: 25 }, { wch: 50 }]
+      ws["!cols"] = colWidths
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Alumni Details")
+
+      // Generate Excel file and trigger download
+      XLSX.writeFile(wb, `alumni_${alumni.registrationNumber || "data"}.xlsx`)
+
+      toast.success("Alumni data downloaded successfully")
+    } catch (error) {
+      toast.error("Failed to download alumni data")
+      console.error("Download error:", error)
+    }
+  }
+
   if (loading || !isAuthenticated || isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -397,6 +504,10 @@ export default function ViewAlumniPage() {
                 Back to Alumni
               </Button>
             </Link>
+            <Button onClick={handleExcelDownload} variant="outline">
+              <FileDown className="mr-2 h-4 w-4" />
+              Download
+            </Button>
             <Button onClick={handlePrint} variant="outline">
               <Printer className="mr-2 h-4 w-4" />
               Print
