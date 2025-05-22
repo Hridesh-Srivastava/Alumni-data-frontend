@@ -120,10 +120,9 @@ export function ContactForm() {
         )}
       </Button>
 
-      {process.env.NODE_ENV === "development" && (
+      {process.env.NODE_ENV === "production" && (
         <div className="mt-4 text-xs text-muted-foreground">
-          <p>Development Mode: Contact messages are stored in localStorage.</p>
-          <p>Check browser console for details.</p>
+         <p>Production Mode: Contact messages are stored in database.</p>
         </div>
       )}
     </form>

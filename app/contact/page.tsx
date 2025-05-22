@@ -1,25 +1,13 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef } from "react"
+import { useRef } from "react"
 import { motion, useInView } from "framer-motion"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { MapPin, Phone, Mail, Clock, Send, Sparkles, MessageCircle, Users, Globe } from "lucide-react"
+import { ContactForm } from "@/components/contact-form"
+import { MapPin, Phone, Mail, Clock, MessageCircle, Users, Globe, Sparkles } from "lucide-react"
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const heroRef = useRef(null)
   const formRef = useRef(null)
   const mapRef = useRef(null)
@@ -27,26 +15,6 @@ export default function ContactPage() {
   const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 })
   const isFormInView = useInView(formRef, { once: true, amount: 0.3 })
   const isMapInView = useInView(mapRef, { once: true, amount: 0.3 })
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    setIsSubmitting(false)
-    setFormData({ name: "", email: "", subject: "", message: "" })
-
-    // You would typically show a success message here
-  }
 
   const contactInfo = [
     {
@@ -326,104 +294,7 @@ export default function ContactPage() {
                 }}
               >
                 <h3 className="text-2xl font-bold text-foreground mb-6">Send us a message</h3>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                        Name
-                      </label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-                        placeholder="Your full name"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                        Email
-                      </label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-                        placeholder="your.email@example.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
-                      Subject
-                    </label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      type="text"
-                      required
-                      value={formData.subject}
-                      onChange={handleInputChange}
-                      className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-                      placeholder="What is this about?"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                      Message
-                    </label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      required
-                      rows={6}
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-                      placeholder="Tell us more about your inquiry..."
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="group w-full relative overflow-hidden rounded-full py-6 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20"
-                  >
-                    <motion.span
-                      className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80"
-                      whileHover={{
-                        background: "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)",
-                      }}
-                      transition={{ duration: 0.5 }}
-                    />
-                    <span className="relative z-10 flex items-center justify-center gap-2 text-primary-foreground">
-                      {isSubmitting ? (
-                        <>
-                          <motion.div
-                            className="h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                          />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          Send Message
-                          <Send className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </>
-                      )}
-                    </span>
-                  </Button>
-                </form>
+                <ContactForm />
               </motion.div>
             </motion.div>
           </div>
