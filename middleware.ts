@@ -12,7 +12,7 @@ const protectedRoutes = [
 ]
 
 // Define public routes that should redirect to dashboard if already authenticated
-const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password"]
+const publicRoutes = ["/login", "/register", "/reset-password"]
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
