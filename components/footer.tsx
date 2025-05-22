@@ -1,12 +1,24 @@
 import Link from "next/link"
-
+import Image from "next/image"
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div>
-            <h3 className="text-lg font-semibold text-white">SST Alumni</h3>
+     <Link
+          href="/"
+          className="flex items-center space-x-2 text-2xl font-bold"
+        >
+          <Image
+            src="/SRHU-logo.png"
+            alt="SRHU logo"
+            width={64}
+            height={64}
+            className="object-contain"
+          />
+          <span>SST Alumni</span>
+        </Link>
             <p className="mt-4 text-sm">
               Connecting graduates from the School of Science and Technology, fostering a strong alumni
               network for professional growth and collaboration.
