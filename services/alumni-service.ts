@@ -42,7 +42,7 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
       // Backend is available, use real API
       const { page = 1, limit = 10, passingYear, program } = filter
 
-      // Always filter for HSST engineering department
+      // Always filter for SST engineering department
       let url = `/alumni?page=${page}&limit=${limit}`
 
       if (passingYear && passingYear !== "all") {
@@ -73,8 +73,8 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
       // Filter mock data based on criteria
       let filteredAlumni = [...mockAlumni]
 
-      // Always filter for HSST engineering department
-      filteredAlumni = filteredAlumni.filter((a) => a.academicUnit === "Himalayan School of Science and Technology")
+      // Always filter for SST engineering department
+      filteredAlumni = filteredAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
 
       if (passingYear && passingYear !== "all") {
         filteredAlumni = filteredAlumni.filter((a) => a.passingYear === passingYear)
@@ -108,8 +108,8 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
     // Fallback to localStorage
     const mockAlumni = getStoredAlumni()
 
-    // Filter for HSST engineering department
-    const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "Himalayan School of Science and Technology")
+    // Filter for SST engineering department
+    const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
 
     return {
       data: filteredAlumni,
@@ -155,8 +155,8 @@ export const getAlumniById = async (id, token) => {
 // Function to create a new alumni
 export const createAlumni = async (alumniData) => {
   try {
-    // Always set academicUnit to HSST
-    alumniData.academicUnit = "Himalayan School of Science and Technology"
+    // Always set academicUnit to SST
+    alumniData.academicUnit = "School of Science and Technology"
 
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -292,7 +292,7 @@ function createAlumniInLocalStorage(alumniData) {
   const newAlumni = {
     _id: Math.random().toString(36).substring(2, 9),
     ...alumniData,
-    academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+    academicUnit: "School of Science and Technology", // Always set to SST
     createdAt: new Date().toISOString(),
   }
 
@@ -309,7 +309,7 @@ function addAlumniToLocalStorage(alumniData) {
     const mockAlumni = getStoredAlumni()
     mockAlumni.push({
       ...alumniData,
-      academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+      academicUnit: "School of Science and Technology", // Always set to SST
       createdAt: alumniData.createdAt || new Date().toISOString(),
     })
     saveAlumniToLocalStorage(mockAlumni)
@@ -321,8 +321,8 @@ function addAlumniToLocalStorage(alumniData) {
 // Function to update an existing alumni
 export const updateAlumni = async (id, alumniData, token) => {
   try {
-    // Always set academicUnit to HSST
-    alumniData.academicUnit = "Himalayan School of Science and Technology"
+    // Always set academicUnit to SST
+    alumniData.academicUnit = "School of Science and Technology"
 
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
@@ -387,7 +387,7 @@ export const updateAlumni = async (id, alumniData, token) => {
           mockAlumni[index] = {
             ...mockAlumni[index],
             ...response.data,
-            academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+            academicUnit: "School of Science and Technology", // Always set to SST
             updatedAt: new Date().toISOString(),
           }
           saveAlumniToLocalStorage(mockAlumni)
@@ -406,7 +406,7 @@ export const updateAlumni = async (id, alumniData, token) => {
           mockAlumni[index] = {
             ...mockAlumni[index],
             ...response.data,
-            academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+            academicUnit: "School of Science and Technology", // Always set to SST
             updatedAt: new Date().toISOString(),
           }
           saveAlumniToLocalStorage(mockAlumni)
@@ -437,7 +437,7 @@ export const updateAlumni = async (id, alumniData, token) => {
       const updatedAlumni = {
         ...mockAlumni[index],
         ...alumniData,
-        academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+        academicUnit: "School of Science and Technology", // Always set to SST
         updatedAt: new Date().toISOString(),
       }
 
@@ -570,8 +570,8 @@ export const getStats = async (token) => {
 
       const mockAlumni = getStoredAlumni()
 
-      // Filter for HSST engineering department
-      const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "Himalayan School of Science and Technology")
+      // Filter for SST engineering department
+      const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
 
       // Calculate real stats based on mock data
       const totalAlumni = filteredAlumni.length
@@ -605,7 +605,7 @@ export const getStats = async (token) => {
       return {
         totalAlumni,
         byAcademicUnit: {
-          "Himalayan School of Science and Technology": totalAlumni,
+          "School of Science and Technology": totalAlumni,
         },
         byPassingYear,
         employmentRate,
@@ -618,13 +618,13 @@ export const getStats = async (token) => {
     // Generate basic stats as fallback
     const mockAlumni = getStoredAlumni()
 
-    // Filter for HSST engineering department
-    const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "Himalayan School of Science and Technology")
+    // Filter for SST engineering department
+    const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
 
     return {
       totalAlumni: filteredAlumni.length,
       byAcademicUnit: {
-        "Himalayan School of Science and Technology": filteredAlumni.length,
+        "School of Science and Technology": filteredAlumni.length,
       },
       byPassingYear: {},
       employmentRate: 0,

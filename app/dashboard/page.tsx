@@ -20,7 +20,7 @@ export default function DashboardPage() {
           </Link>
         </nav>
       </div>
-      <p className="text-muted-foreground mb-6">Welcome to the HSST Alumni Data Collection System</p>
+      <p className="text-muted-foreground mb-6">Welcome to the SST Alumni Data Collection System</p>
 
       <BackendStatus />
 

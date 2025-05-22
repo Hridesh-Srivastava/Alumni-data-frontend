@@ -16,8 +16,8 @@ const getStoredAcademicUnits = () => {
   const defaultUnits = [
     {
       _id: "1",
-      name: "Himalayan School of Science/Engineering and Technology",
-      shortName: "HSST",
+      name: "School of Science and Technology",
+      shortName: "SST",
       description: "School focused on engineering and technology education",
     },
     {
@@ -28,8 +28,8 @@ const getStoredAcademicUnits = () => {
     },
     {
       _id: "3",
-      name: "Himalayan School of Management Studies",
-      shortName: "HSMS",
+      name: "School of Management Studies",
+      shortName: "SMS",
       description: "Business and management education",
     },
   ]

@@ -124,7 +124,7 @@ export default function NewAlumniPage() {
         basicInfoImage,
         qualificationImage,
         employmentImage,
-        academicUnit: "Himalayan School of Science and Technology", // Always set to HSST
+        academicUnit: "School of Science and Technology", // Always set to SST
       }
 
       console.log("Form data prepared:", formData)
@@ -615,7 +615,7 @@ export default function NewAlumniPage() {
                         </div>
                         <div className="grid grid-cols-3 gap-1">
                           <p className="font-medium">Academic Unit:</p>
-                          <p className="col-span-2">Himalayan School of Science and Technology</p>
+                          <p className="col-span-2">School of Science and Technology</p>
                         </div>
                         <div className="grid grid-cols-3 gap-1">
                           <p className="font-medium">Program:</p>

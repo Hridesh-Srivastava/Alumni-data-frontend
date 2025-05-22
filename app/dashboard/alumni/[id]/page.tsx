@@ -167,7 +167,7 @@ export default function ViewAlumniPage() {
       </head>
       <body>
         <div class="header">
-          <div class="logo">HSST Alumni Data Collection</div>
+          <div class="logo">SST Alumni Data Collection</div>
           <div>Alumni Details Report</div>
           <div>Generated on: ${new Date().toLocaleDateString()}</div>
         </div>
@@ -316,8 +316,8 @@ export default function ViewAlumniPage() {
         }
 
         <div class="footer">
-          <p>HSST Alumni Data Collection System</p>
-          <p>This is an official document generated from the HSST Alumni Database.</p>
+          <p>SST Alumni Data Collection System</p>
+          <p>This is an official document generated from the SST Alumni Database.</p>
         </div>
 
         <script>
@@ -352,7 +352,7 @@ export default function ViewAlumniPage() {
     try {
       // Create data for Excel file
       const excelData = [
-        ["HSST Alumni Data Collection"],
+        ["SST Alumni Data Collection"],
         ["Alumni Details Report"],
         ["Generated on:", new Date().toLocaleDateString()],
         [""],

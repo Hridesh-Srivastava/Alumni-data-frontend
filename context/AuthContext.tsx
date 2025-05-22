@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { toast } from "sonner"
 import axios from "axios"
+import { useRouter } from "next/navigation"
 
 interface User {
   _id: string
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     // Check if user is logged in
@@ -108,6 +110,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Store the token in localStorage
       localStorage.setItem("token", authToken)
+
+      // Also set the token in cookies for middleware
+      document.cookie = `token=${authToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
 
       // Store the user data in localStorage (without duplicating the token)
       const { token: _, ...userWithoutToken } = userData
@@ -174,6 +179,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Store the token in localStorage
       localStorage.setItem("token", authToken)
 
+      // Also set the token in cookies for middleware
+      document.cookie = `token=${authToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+
       // Store the user data in localStorage (without duplicating the token)
       const { token: _, ...userWithoutToken } = userData
       localStorage.setItem("user", JSON.stringify(userWithoutToken))
@@ -207,7 +215,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem("user")
     localStorage.removeItem("token")
 
+    // Clear cookies
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+
     toast.success("Logged out successfully")
+
+    // Redirect to login page
+    router.push("/login")
   }
 
   const updateProfile = async (userData: any) => {
@@ -237,6 +251,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       localStorage.setItem("user", JSON.stringify(userWithoutToken))
       localStorage.setItem("token", newToken)
+
+      // Update cookie token if it changed
+      if (newToken !== token) {
+        document.cookie = `token=${newToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+      }
 
       toast.success("Profile updated successfully")
       return

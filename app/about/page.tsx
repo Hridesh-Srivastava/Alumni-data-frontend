@@ -10,14 +10,14 @@ export default function AboutPage() {
           <div className="container px-4 md:px-6">
             <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2 lg:gap-16">
               <div>
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">About HSST</h1>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">About SST</h1>
                 <p className="mt-4 text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  The Himalayan School of Science and Technology (HSST) is a premier institution under Swami Rama
+                  The School of Science and Technology (SST) is a premier institution under Swami Rama
                   Himalayan University (SRHU), dedicated to providing quality education in the fields of science,
                   engineering, and technology.
                 </p>
                 <p className="mt-4 text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Established with a vision to create a center of excellence for technical education, HSST has been at
+                  Established with a vision to create a center of excellence for technical education, SST has been at
                   the forefront of nurturing talent and producing skilled professionals who contribute significantly to
                   the technological advancement of society.
                 </p>
@@ -52,7 +52,7 @@ export default function AboutPage() {
             <div className="mx-auto max-w-5xl space-y-6 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Alumni Network</h2>
               <p className="mx-auto max-w-3xl text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Our alumni are our pride and the true ambassadors of HSST. They have excelled in various fields and
+                Our alumni are our pride and the true ambassadors of SST. They have excelled in various fields and
                 continue to make significant contributions to society.
               </p>
             </div>

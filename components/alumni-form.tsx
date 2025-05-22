@@ -271,7 +271,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
         <CardHeader>
           <CardTitle>{isEditing ? "Edit Alumni" : "Add New Alumni"}</CardTitle>
           <CardDescription>
-            {isEditing ? "Update alumni information in the system" : "Add a new alumni to the HSST database"}
+            {isEditing ? "Update alumni information in the system" : "Add a new alumni to the SST database"}
           </CardDescription>
         </CardHeader>
 

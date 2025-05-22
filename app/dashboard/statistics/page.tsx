@@ -73,7 +73,7 @@ export default function StatisticsPage() {
   }
 
   const formatAcademicUnitName = (name: string) => {
-    if (name.includes("Himalayan")) return "HSST"
+    if (name.includes("School")) return "SST"
     if (name.includes("Malayan")) return "MSS"
     return name.length > 10 ? `${name.substring(0, 8)}...` : name
   }

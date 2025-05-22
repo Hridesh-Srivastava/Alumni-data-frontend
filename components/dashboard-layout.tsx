@@ -107,7 +107,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center justify-between px-4 py-6">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <School className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">HSST Alumni</span>
+              <span className="text-xl font-bold">SST Alumni</span>
             </Link>
             <ThemeToggle />
           </div>

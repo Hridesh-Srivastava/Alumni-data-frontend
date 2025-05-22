@@ -197,7 +197,7 @@ export default function AcademicUnitsPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="e.g., Himalayan School of Science and Technology"
+                    placeholder="e.g., School of Science and Technology"
                     required
                   />
                 </div>
@@ -208,7 +208,7 @@ export default function AcademicUnitsPage() {
                     name="shortName"
                     value={formData.shortName}
                     onChange={handleInputChange}
-                    placeholder="e.g., HSST"
+                    placeholder="e.g., SST"
                     required
                   />
                 </div>

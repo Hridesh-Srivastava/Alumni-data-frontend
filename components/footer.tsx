@@ -6,9 +6,9 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div>
-            <h3 className="text-lg font-semibold text-white">HSST Alumni</h3>
+            <h3 className="text-lg font-semibold text-white">SST Alumni</h3>
             <p className="mt-4 text-sm">
-              Connecting graduates from the Himalayan School of Science and Technology, fostering a strong alumni
+              Connecting graduates from the School of Science and Technology, fostering a strong alumni
               network for professional growth and collaboration.
             </p>
           </div>
@@ -58,7 +58,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} HSST Alumni Network. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} SST Alumni Network. All rights reserved.</p>
           <p className="mt-2">A project of Swami Rama Himalayan University</p>
         </div>
       </div>

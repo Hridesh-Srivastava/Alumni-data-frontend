@@ -78,7 +78,7 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Units</SelectItem>
-                <SelectItem value="Himalayan School of Science/Engineering and Technology">HSST</SelectItem>
+                <SelectItem value="School of Science and Technology">SST</SelectItem>
               </SelectContent>
             </Select>
           </div>

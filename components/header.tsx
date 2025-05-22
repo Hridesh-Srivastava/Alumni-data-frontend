@@ -8,7 +8,7 @@ export function Header() {
     <header className="bg-background py-4 shadow-sm">
       <div className="container mx-auto flex items-center justify-between px-4">
         <Link href="/" className="text-2xl font-bold">
-          HSST Alumni
+          SST Alumni
         </Link>
         <nav className="flex items-center space-x-4">
           <Link href="/" className="text-sm font-medium hover:underline">

@@ -6,7 +6,7 @@ export function Features() {
       icon: <GraduationCap className="h-10 w-10 text-primary" />,
       title: "Comprehensive Alumni Database",
       description:
-        "Maintain detailed records of all HSST graduates, including their academic achievements and career progression.",
+        "Maintain detailed records of all SST graduates, including their academic achievements and career progression.",
     },
     {
       icon: <Database className="h-10 w-10 text-primary" />,
@@ -32,7 +32,7 @@ export function Features() {
         <div className="mx-auto max-w-5xl space-y-6 text-center">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Features</h2>
           <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            Our alumni data collection system offers powerful tools to manage and maintain connections with HSST
+            Our alumni data collection system offers powerful tools to manage and maintain connections with SST
             graduates.
           </p>
         </div>
