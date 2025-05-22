@@ -21,8 +21,6 @@ import {
   MapPin,
   Calendar,
   Eye,
-  ArrowRight,
-  ExternalLink,
   ChevronUp,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -112,31 +110,31 @@ const stats: Stat[] = [
 
 const timelineData: TimelineItem[] = [
   {
-    year: "1998",
+    year: "2013",
     title: "Foundation",
     description:
-      "School of Science and Technology was established with a vision to provide quality education.",
+      "School of Science and Technology was established with a vision to provide quality education in SRHU.",
   },
   {
-    year: "2005",
+    year: "2014",
     title: "Expansion",
     description:
-      "Added new departments and expanded the campus infrastructure to accommodate growing student body.",
+      "Added new departments and expanded the courses to accommodate growing student body.",
   },
   {
-    year: "2010",
+    year: "2017",
     title: "Research Center",
     description:
       "Established a dedicated research center to foster innovation and technological advancement.",
   },
   {
-    year: "2015",
+    year: "2019",
     title: "International Recognition",
     description:
       "Received international accreditation and established partnerships with global universities.",
   },
   {
-    year: "2020",
+    year: "2021",
     title: "Digital Transformation",
     description:
       "Implemented comprehensive digital learning platforms and virtual laboratories.",
