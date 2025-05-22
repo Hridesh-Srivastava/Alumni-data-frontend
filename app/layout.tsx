@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "SST Alumni Data Collection",
   description: "Alumni data collection system for Swami Rama Himalayan University",
   icons: {
-    icon: "/HSST-2.png.webp",
+    icon: "/SRHU-logo.png",
   },
 }
 

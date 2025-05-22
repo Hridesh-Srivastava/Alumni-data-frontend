@@ -1,54 +1,64 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { usePathname } from "next/navigation"
-import { useAuth } from "@/context/AuthContext"
-import { LayoutDashboard, Users, BarChart, School, User, Settings, LogOut, Menu, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import {
+  LayoutDashboard,
+  Users,
+  BarChart,
+  School,
+  User,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import Image from "next/image";
 
 interface DashboardLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logout } = useAuth()
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu when path changes
   useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [pathname])
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // Ensure sidebar is visible on larger screens
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false)
+        setIsMobileMenuOpen(false);
       }
-    }
+    };
 
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Handle logout with proper navigation
   const handleLogout = () => {
     try {
-      logout()
-      router.push("/")
+      logout();
+      router.push("/");
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error("Logout error:", error);
       // Force navigation to home page even if logout fails
-      window.location.href = "/"
+      window.location.href = "/";
     }
-  }
+  };
 
   const navItems = [
     {
@@ -81,7 +91,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     //   href: "/dashboard/settings",
     //   icon: <Settings className="h-5 w-5" />,
     // },
-  ]
+  ];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -93,7 +103,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
         >
-          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {isMobileMenuOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </Button>
       </div>
 
@@ -106,7 +120,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between px-4 py-6">
             <Link href="/dashboard" className="flex items-center space-x-2">
-              <School className="h-6 w-6 text-primary" />
+              <Image
+                src="/SRHU-logo.png"
+                alt="SRHU logo"
+                width={64}
+                height={64}
+                className="object-contain"
+              />
               <span className="text-xl font-bold">SST Alumni</span>
             </Link>
             <ThemeToggle />
@@ -114,20 +134,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <nav className="flex-1 space-y-1 px-2 py-4">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+              const isActive =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`flex items-center space-x-2 rounded-md px-3 py-2 transition-colors ${
-                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
                   }`}
                 >
                   {item.icon}
                   <span>{item.title}</span>
                 </Link>
-              )
+              );
             })}
           </nav>
 
@@ -135,17 +158,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-primary font-medium">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                  <span className="text-primary font-medium">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </span>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium">{user?.name || "User"}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email || "user@example.com"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user?.email || "user@example.com"}
+                  </p>
                 </div>
               </div>
-             
             </div>
 
-            <Button variant="outline" className="mt-4 w-full" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={handleLogout}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
@@ -160,9 +190,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Overlay for mobile menu */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
     </div>
-  )
+  );
 }
-
