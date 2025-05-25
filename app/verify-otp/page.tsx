@@ -98,7 +98,7 @@ export default function VerifyOTPPage() {
         process.env.NODE_ENV === "production" ? "; Secure" : ""
       }`
 
-      toast.success("Email verified successfully! Welcome to the dashboard.")
+      toast.success("Email verified successfully!")
       router.push("/dashboard")
     } catch (error: any) {
       console.error("OTP verification error:", error)
