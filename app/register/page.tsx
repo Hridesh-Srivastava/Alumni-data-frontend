@@ -5,13 +5,13 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 export default function RegisterPage() {
   const [name, setName] = useState("")
@@ -22,7 +22,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const { register } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,18 +41,32 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      await register(name.trim(), email.trim().toLowerCase(), password)
-      // No toast here - it's handled in the AuthContext
-      router.push("/dashboard")
+      // Create temporary user and send OTP
+      const response = await fetch("/api/auth/temp-register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed")
+      }
+
+      toast.success("Verification code sent! Please check your email.")
+
+      // Redirect to OTP verification page with email and tempUserId
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}&userId=${data.tempUserId}`)
     } catch (error: any) {
       console.error("Registration error:", error)
-
-      // Extract error message from response if available
-      if (error.response && error.response.data && error.response.data.message) {
-        setError(error.response.data.message)
-      } else {
-        setError("Registration failed. Please try again.")
-      }
+      setError(error.message || "Registration failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -152,7 +165,7 @@ export default function RegisterPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account
+                    Creating account...
                   </>
                 ) : (
                   "Register"
