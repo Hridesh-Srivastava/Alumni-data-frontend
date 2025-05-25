@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { getAlumni } from "@/services/alumni-service"
+import { getAlumni, getAlumniById } from "@/services/alumni-service"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Pagination,
   PaginationContent,
@@ -13,18 +14,42 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Loader2, AlertCircle, Eye, Pencil } from "lucide-react"
+import { Loader2, AlertCircle, Eye, Pencil, Download } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
+import * as XLSX from "xlsx"
 
 interface Alumni {
   _id: string
   name: string
   contactDetails?: {
     email?: string
+    phone?: string
+    address?: string
   }
   academicUnit: string
   passingYear: string
   program: string
+  registrationNumber?: string
+  qualifiedExams?: {
+    examName?: string
+    rollNumber?: string
+    certificateUrl?: string
+  }
+  employment?: {
+    type?: string
+    employerName?: string
+    employerContact?: string
+    employerEmail?: string
+    selfEmploymentDetails?: string
+    documentUrl?: string
+  }
+  higherEducation?: {
+    institutionName?: string
+    programName?: string
+    documentUrl?: string
+  }
+  basicInfoImageUrl?: string
 }
 
 interface FilterParams {
@@ -41,6 +66,8 @@ export function AlumniTable({ filter }: AlumniTableProps) {
   const [alumni, setAlumni] = useState<Alumni[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedAlumni, setSelectedAlumni] = useState<Set<string>>(new Set())
+  const [isDownloading, setIsDownloading] = useState(false)
   const { token, refreshToken, isAuthenticated } = useAuth()
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -108,8 +135,140 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     fetchAlumni()
   }, [token, filter, pagination.currentPage])
 
+  // Clear selections when data changes
+  useEffect(() => {
+    setSelectedAlumni(new Set())
+  }, [alumni])
+
   const handlePageChange = (page: number) => {
     setPagination({ ...pagination, currentPage: page })
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(alumni.map((alumnus) => alumnus._id))
+      setSelectedAlumni(allIds)
+    } else {
+      setSelectedAlumni(new Set())
+    }
+  }
+
+  const handleSelectAlumni = (alumniId: string, checked: boolean) => {
+    const newSelected = new Set(selectedAlumni)
+    if (checked) {
+      newSelected.add(alumniId)
+    } else {
+      newSelected.delete(alumniId)
+    }
+    setSelectedAlumni(newSelected)
+  }
+
+  const isAllSelected = alumni.length > 0 && selectedAlumni.size === alumni.length
+  const isIndeterminate = selectedAlumni.size > 0 && selectedAlumni.size < alumni.length
+  const hasSelection = selectedAlumni.size > 0
+
+  const handleBulkExcelDownload = async () => {
+    if (selectedAlumni.size === 0) {
+      toast.error("Please select at least one alumni to download")
+      return
+    }
+
+    setIsDownloading(true)
+    try {
+      // Fetch detailed data for all selected alumni
+      const detailedAlumniPromises = Array.from(selectedAlumni).map((id) => getAlumniById(id, token))
+
+      const detailedAlumniData = await Promise.all(detailedAlumniPromises)
+
+      // Create Excel data
+      const excelData = [
+        ["SST Alumni Data Collection"],
+        ["Bulk Alumni Details Report"],
+        ["Generated on:", new Date().toLocaleDateString()],
+        ["Total Records:", detailedAlumniData.length.toString()],
+        [""],
+      ]
+
+      // Add headers for the data table
+      const headers = [
+        "Full Name",
+        "Registration Number",
+        "Program",
+        "Passing Year",
+        "Academic Unit",
+        "Email",
+        "Phone",
+        "Address",
+        "Qualified Exam Name",
+        "Qualified Exam Roll Number",
+        "Qualification Certificate URL",
+        "Employment Type",
+        "Employer Name",
+        "Employer Contact",
+        "Employer Email",
+        "Self Employment Details",
+        "Employment Document URL",
+        "Higher Education Institution",
+        "Higher Education Program",
+        "Higher Education Document URL",
+        "ID Proof URL",
+      ]
+
+      excelData.push(headers)
+
+      // Add data for each alumni
+      detailedAlumniData.forEach((alumni) => {
+        const row = [
+          alumni.name || "Not provided",
+          alumni.registrationNumber || "Not provided",
+          alumni.program || "Not provided",
+          alumni.passingYear || "Not provided",
+          alumni.academicUnit || "Not provided",
+          alumni.contactDetails?.email || "Not provided",
+          alumni.contactDetails?.phone || "Not provided",
+          alumni.contactDetails?.address || "Not provided",
+          alumni.qualifiedExams?.examName || "Not provided",
+          alumni.qualifiedExams?.rollNumber || "Not provided",
+          alumni.qualifiedExams?.certificateUrl || "Not provided",
+          alumni.employment?.type || "Not provided",
+          alumni.employment?.employerName || "Not provided",
+          alumni.employment?.employerContact || "Not provided",
+          alumni.employment?.employerEmail || "Not provided",
+          alumni.employment?.selfEmploymentDetails || "Not provided",
+          alumni.employment?.documentUrl || "Not provided",
+          alumni.higherEducation?.institutionName || "Not provided",
+          alumni.higherEducation?.programName || "Not provided",
+          alumni.higherEducation?.documentUrl || "Not provided",
+          alumni.basicInfoImageUrl || "Not provided",
+        ]
+        excelData.push(row)
+      })
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.aoa_to_sheet(excelData)
+
+      // Set column widths
+      const colWidths = headers.map(() => ({ wch: 25 }))
+      ws["!cols"] = colWidths
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Alumni Details")
+
+      // Generate Excel file and trigger download
+      const fileName = `alumni_bulk_data_${new Date().toISOString().split("T")[0]}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      toast.success(`${selectedAlumni.size} alumni records downloaded successfully`)
+
+      // Clear selections after successful download
+      setSelectedAlumni(new Set())
+    } catch (error) {
+      console.error("Bulk download error:", error)
+      toast.error("Failed to download alumni data")
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   if (isLoading) {
@@ -135,10 +294,56 @@ export function AlumniTable({ filter }: AlumniTableProps) {
 
   return (
     <div className="space-y-4">
+      {/* Bulk Actions Header */}
+      {alumni && alumni.length > 0 && (
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="select-all"
+                checked={isAllSelected}
+                onCheckedChange={handleSelectAll}
+                ref={(ref) => {
+                  if (ref) {
+                    ref.indeterminate = isIndeterminate
+                  }
+                }}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium">
+                Select All ({alumni.length} items)
+              </label>
+            </div>
+            {selectedAlumni.size > 0 && (
+              <span className="text-sm text-muted-foreground">{selectedAlumni.size} selected</span>
+            )}
+          </div>
+
+          {/* Professional Download Button */}
+          <Button
+            onClick={handleBulkExcelDownload}
+            disabled={!hasSelection || isDownloading}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+              ${
+                hasSelection
+                  ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200"
+              }
+            `}
+          >
+            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Download Selected ({selectedAlumni.size})
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <span className="sr-only">Select</span>
+              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Academic Unit</TableHead>
@@ -151,6 +356,13 @@ export function AlumniTable({ filter }: AlumniTableProps) {
             {alumni && alumni.length > 0 ? (
               alumni.map((alumnus) => (
                 <TableRow key={alumnus._id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedAlumni.has(alumnus._id)}
+                      onCheckedChange={(checked) => handleSelectAlumni(alumnus._id, checked as boolean)}
+                      aria-label={`Select ${alumnus.name}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{alumnus.name}</TableCell>
                   <TableCell>{alumnus.contactDetails?.email || "-"}</TableCell>
                   <TableCell>{alumnus.academicUnit}</TableCell>
@@ -176,7 +388,7 @@ export function AlumniTable({ filter }: AlumniTableProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No alumni records found.
                 </TableCell>
               </TableRow>
