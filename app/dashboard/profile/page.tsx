@@ -7,9 +7,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Loader2, User, Lock, Eye, EyeOff } from "lucide-react"
+import { Loader2, User, Lock, Eye, EyeOff, Check, X } from "lucide-react"
 import Link from "next/link"
 import { updatePassword } from "@/services/auth-service"
+
+interface PasswordRule {
+  label: string
+  test: (password: string) => boolean
+}
 
 export default function ProfilePage() {
   const { user, updateProfile, loading } = useAuth()
@@ -38,6 +43,27 @@ export default function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   })
+
+  const passwordRules: PasswordRule[] = [
+    {
+      label: "At least 6 characters",
+      test: (pwd) => pwd.length >= 6,
+    },
+    {
+      label: "At least one uppercase letter",
+      test: (pwd) => /[A-Z]/.test(pwd),
+    },
+    {
+      label: "At least one number",
+      test: (pwd) => /\d/.test(pwd),
+    },
+    {
+      label: "At least one special character",
+      test: (pwd) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd),
+    },
+  ]
+
+  const isNewPasswordValid = passwordRules.every((rule) => rule.test(passwordData.newPassword))
 
   // Load user data when available
   useEffect(() => {
@@ -99,8 +125,8 @@ export default function ProfilePage() {
     if (!passwordData.newPassword) {
       errors.newPassword = "New password is required"
       isValid = false
-    } else if (passwordData.newPassword.length < 6) {
-      errors.newPassword = "Password must be at least 6 characters"
+    } else if (!isNewPasswordValid) {
+      errors.newPassword = "Password does not meet all requirements"
       isValid = false
     }
 
@@ -304,6 +330,26 @@ export default function ProfilePage() {
                   {passwordErrors.newPassword && (
                     <p className="text-sm text-destructive">{passwordErrors.newPassword}</p>
                   )}
+                  {passwordData.newPassword && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Password requirements:</p>
+                      {passwordRules.map((rule, index) => {
+                        const isValid = rule.test(passwordData.newPassword)
+                        return (
+                          <div key={index} className="flex items-center space-x-2">
+                            {isValid ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <X className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className={`text-sm ${isValid ? "text-green-600" : "text-red-600"}`}>
+                              {rule.label}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -329,9 +375,31 @@ export default function ProfilePage() {
                   {passwordErrors.confirmPassword && (
                     <p className="text-sm text-destructive">{passwordErrors.confirmPassword}</p>
                   )}
+                  {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                    <div className="flex items-center space-x-2 mt-1">
+                      <X className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-600">Passwords do not match</span>
+                    </div>
+                  )}
+                  {passwordData.confirmPassword &&
+                    passwordData.newPassword === passwordData.confirmPassword &&
+                    passwordData.newPassword && (
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span className="text-sm text-green-600">Passwords match</span>
+                      </div>
+                    )}
                 </div>
 
-                <Button type="submit" disabled={isPasswordLoading}>
+                <Button
+                  type="submit"
+                  disabled={
+                    isPasswordLoading ||
+                    !isNewPasswordValid ||
+                    passwordData.newPassword !== passwordData.confirmPassword ||
+                    !passwordData.currentPassword
+                  }
+                >
                   {isPasswordLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

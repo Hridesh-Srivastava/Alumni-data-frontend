@@ -3,13 +3,18 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Eye, EyeOff, Lock, AlertCircle, CheckCircle } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Lock, AlertCircle, CheckCircle, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { resetPassword } from "@/services/auth-service"
+
+interface PasswordRule {
+  label: string
+  test: (password: string) => boolean
+}
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("")
@@ -20,6 +25,27 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("")
   const router = useRouter()
   const [token, setToken] = useState("")
+
+  const passwordRules: PasswordRule[] = [
+    {
+      label: "At least 6 characters",
+      test: (pwd) => pwd.length >= 6,
+    },
+    {
+      label: "At least one uppercase letter",
+      test: (pwd) => /[A-Z]/.test(pwd),
+    },
+    {
+      label: "At least one number",
+      test: (pwd) => /\d/.test(pwd),
+    },
+    {
+      label: "At least one special character",
+      test: (pwd) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd),
+    },
+  ]
+
+  const isPasswordValid = passwordRules.every((rule) => rule.test(password))
 
   useEffect(() => {
     // Extract token from URL directly instead of using params
@@ -45,8 +71,8 @@ export default function ResetPasswordPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long")
+    if (!isPasswordValid) {
+      setError("Password does not meet all requirements")
       return
     }
 
@@ -129,6 +155,26 @@ export default function ResetPasswordPage() {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  {password && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Password requirements:</p>
+                      {passwordRules.map((rule, index) => {
+                        const isValid = rule.test(password)
+                        return (
+                          <div key={index} className="flex items-center space-x-2">
+                            {isValid ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <X className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className={`text-sm ${isValid ? "text-green-600" : "text-red-600"}`}>
+                              {rule.label}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -145,8 +191,24 @@ export default function ResetPasswordPage() {
                       autoComplete="new-password"
                     />
                   </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <div className="flex items-center space-x-2 mt-1">
+                      <X className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-600">Passwords do not match</span>
+                    </div>
+                  )}
+                  {confirmPassword && password === confirmPassword && password && (
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-green-600">Passwords match</span>
+                    </div>
+                  )}
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting || !token}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting || !token || !isPasswordValid || password !== confirmPassword}
+                >
                   {isSubmitting ? "Resetting..." : "Reset Password"}
                 </Button>
               </form>

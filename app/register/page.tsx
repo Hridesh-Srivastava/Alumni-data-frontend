@@ -10,8 +10,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { Loader2, ArrowLeft, AlertCircle, Eye, EyeOff, Check, X } from "lucide-react"
 import { toast } from "sonner"
+
+interface PasswordRule {
+  label: string
+  test: (password: string) => boolean
+}
 
 export default function RegisterPage() {
   const [name, setName] = useState("")
@@ -24,17 +29,38 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
+  const passwordRules: PasswordRule[] = [
+    {
+      label: "At least 6 characters",
+      test: (pwd) => pwd.length >= 6,
+    },
+    {
+      label: "At least one uppercase letter",
+      test: (pwd) => /[A-Z]/.test(pwd),
+    },
+    {
+      label: "At least one number",
+      test: (pwd) => /\d/.test(pwd),
+    },
+    {
+      label: "At least one special character",
+      test: (pwd) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd),
+    },
+  ]
+
+  const isPasswordValid = passwordRules.every((rule) => rule.test(password))
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match")
+    if (!isPasswordValid) {
+      setError("Password does not meet all requirements")
       return
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
       return
     }
 
@@ -116,14 +142,13 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password (min 6 characters)</Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    minLength={6}
                     required
                   />
                   <Button
@@ -137,6 +162,24 @@ export default function RegisterPage() {
                     <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                   </Button>
                 </div>
+                {password && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Password requirements:</p>
+                    {passwordRules.map((rule, index) => {
+                      const isValid = rule.test(password)
+                      return (
+                        <div key={index} className="flex items-center space-x-2">
+                          {isValid ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <X className="h-4 w-4 text-red-500" />
+                          )}
+                          <span className={`text-sm ${isValid ? "text-green-600" : "text-red-600"}`}>{rule.label}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -146,7 +189,6 @@ export default function RegisterPage() {
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    minLength={6}
                     required
                   />
                   <Button
@@ -160,8 +202,24 @@ export default function RegisterPage() {
                     <span className="sr-only">{showConfirmPassword ? "Hide password" : "Show password"}</span>
                   </Button>
                 </div>
+                {confirmPassword && password !== confirmPassword && (
+                  <div className="flex items-center space-x-2 mt-1">
+                    <X className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-red-600">Passwords do not match</span>
+                  </div>
+                )}
+                {confirmPassword && password === confirmPassword && password && (
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-green-600">Passwords match</span>
+                  </div>
+                )}
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || !isPasswordValid || password !== confirmPassword || !name || !email}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
