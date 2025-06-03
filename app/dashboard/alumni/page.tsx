@@ -19,12 +19,19 @@ export default function AlumniPage() {
     passingYear: "",
     program: "",
   })
+  const [totalAlumni, setTotalAlumni] = useState(0) 
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login")
     }
   }, [isAuthenticated, loading, router])
+
+  
+  const handleTotalChange = (total: number) => {
+    console.log("Total alumni count received:", total) 
+    setTotalAlumni(total)
+  }
 
   if (loading || !isAuthenticated) {
     return (
@@ -40,19 +47,23 @@ export default function AlumniPage() {
         title="Alumni Records"
         description="Manage and view all alumni records"
         action={
-          <Link href="/dashboard/alumni/new">
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New Alumni
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Total: <span className="font-semibold text-foreground">{totalAlumni}</span> alumni
+            </div>
+            <Link href="/dashboard/alumni/new">
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add New Alumni
+              </Button>
+            </Link>
+          </div>
         }
       />
       <div className="space-y-4">
         <AlumniFilter onFilterChange={setFilter} />
-        <AlumniTable filter={filter} />
+        <AlumniTable filter={filter} onTotalChange={handleTotalChange} />
       </div>
     </DashboardLayout>
   )
 }
-

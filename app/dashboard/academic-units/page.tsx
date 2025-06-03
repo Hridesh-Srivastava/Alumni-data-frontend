@@ -128,10 +128,16 @@ export default function AcademicUnitsPage() {
           <h1 className="text-3xl font-bold">Academic Units</h1>
           <p className="text-muted-foreground">Manage academic units in the system</p>
         </div>
-        <Button onClick={handleAddUnit}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Unit
-        </Button>
+        <div className="flex items-center gap-4">
+          {/* Total Count Display */}
+          <div className="text-sm text-muted-foreground">
+            Total: <span className="font-semibold text-foreground">{academicUnits.length}</span> units
+          </div>
+          <Button onClick={handleAddUnit}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Unit
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -246,4 +252,3 @@ export default function AcademicUnitsPage() {
     </div>
   )
 }
-

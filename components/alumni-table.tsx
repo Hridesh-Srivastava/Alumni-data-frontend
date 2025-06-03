@@ -52,39 +52,42 @@ interface Alumni {
   basicInfoImageUrl?: string
 }
 
-interface FilterParams {
-  academicUnit?: string
-  passingYear?: string
-  program?: string
-}
-
 interface AlumniTableProps {
-  filter: FilterParams
+  filter: {
+    academicUnit?: string
+    passingYear?: string
+    program?: string
+  }
+  onTotalChange?: (total: number) => void // Callback to pass total count to parent
 }
 
-export function AlumniTable({ filter }: AlumniTableProps) {
+export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
   const [alumni, setAlumni] = useState<Alumni[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedAlumni, setSelectedAlumni] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
-  const { token, refreshToken, isAuthenticated } = useAuth()
+  const { token, isAuthenticated } = useAuth()
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     total: 0,
   })
 
-  // Debug token
+  // Pass total count to parent component whenever it changes
   useEffect(() => {
-    console.log("Auth state in AlumniTable:", { token: token?.slice(0, 15) + "...", isAuthenticated })
-  }, [token, isAuthenticated])
+    console.log("Pagination total changed:", pagination.total) // Debug log
+    if (onTotalChange) {
+      onTotalChange(pagination.total)
+    }
+  }, [pagination.total, onTotalChange])
 
   useEffect(() => {
     const fetchAlumni = async () => {
       try {
         setIsLoading(true)
         setError(null)
+        console.log("Fetching alumni with filter:", filter) // Debug log
 
         // Build filter object
         const filterParams: any = {
@@ -92,29 +95,60 @@ export function AlumniTable({ filter }: AlumniTableProps) {
           limit: 10,
         }
 
-        if (filter.academicUnit && filter.academicUnit !== "all") {
+        if (filter.academicUnit && filter.academicUnit !== "all" && filter.academicUnit !== "") {
           filterParams.academicUnit = filter.academicUnit
         }
 
-        if (filter.passingYear && filter.passingYear !== "all") {
+        if (filter.passingYear && filter.passingYear !== "all" && filter.passingYear !== "") {
           filterParams.passingYear = filter.passingYear
         }
 
-        if (filter.program) {
+        if (filter.program && filter.program !== "") {
           filterParams.program = filter.program
         }
 
-        const response = await getAlumni(filterParams)
+        console.log("Filter params:", filterParams) // Debug log
 
-        if (response && response.data) {
-          setAlumni(response.data)
-          setPagination({
-            currentPage: response.pagination?.page || 1,
-            totalPages: response.pagination?.totalPages || 1,
-            total: response.pagination?.total || 0,
-          })
+        const response = await getAlumni(filterParams)
+        console.log("Alumni response:", response) // Debug log
+
+        if (response) {
+          // Handle different response formats
+          if (response.alumni && Array.isArray(response.alumni)) {
+            // Format: { alumni: [...], pagination: {...} }
+            setAlumni(response.alumni)
+            setPagination({
+              currentPage: response.pagination?.page || 1,
+              totalPages: response.pagination?.totalPages || 1,
+              total: response.pagination?.total || response.alumni.length,
+            })
+          } else if (Array.isArray(response)) {
+            // Format: [...]
+            setAlumni(response)
+            setPagination({
+              currentPage: 1,
+              totalPages: 1,
+              total: response.length,
+            })
+          } else if (response.data && Array.isArray(response.data)) {
+            // Format: { data: [...], pagination: {...} }
+            setAlumni(response.data)
+            setPagination({
+              currentPage: response.pagination?.page || 1,
+              totalPages: response.pagination?.totalPages || 1,
+              total: response.pagination?.total || response.data.length,
+            })
+          } else {
+            // Fallback
+            console.warn("Unexpected response format:", response)
+            setAlumni([])
+            setPagination({
+              currentPage: 1,
+              totalPages: 1,
+              total: 0,
+            })
+          }
         } else {
-          // Fallback to empty array if no data
           setAlumni([])
           setPagination({
             currentPage: 1,
@@ -122,18 +156,24 @@ export function AlumniTable({ filter }: AlumniTableProps) {
             total: 0,
           })
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching alumni:", error)
         setError("Failed to fetch alumni records")
-        // Set empty data on error
         setAlumni([])
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          total: 0,
+        })
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchAlumni()
-  }, [token, filter, pagination.currentPage])
+    if (isAuthenticated) {
+      fetchAlumni()
+    }
+  }, [token, filter, pagination.currentPage, isAuthenticated])
 
   // Clear selections when data changes
   useEffect(() => {
@@ -176,7 +216,7 @@ export function AlumniTable({ filter }: AlumniTableProps) {
     setIsDownloading(true)
     try {
       // Fetch detailed data for all selected alumni
-      const detailedAlumniPromises = Array.from(selectedAlumni).map((id) => getAlumniById(id, token))
+      const detailedAlumniPromises = Array.from(selectedAlumni).map((id) => getAlumniById(id))
 
       const detailedAlumniData = await Promise.all(detailedAlumniPromises)
 
