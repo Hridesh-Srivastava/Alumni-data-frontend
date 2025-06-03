@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "User-Agent": "NextJS-App/1.0",
         },
         body: JSON.stringify({
           name: tempUser.name,
@@ -61,6 +62,22 @@ export async function POST(request: NextRequest) {
           password: tempUser.password, // Use original password, not hashed
         }),
       })
+
+      // Check if response is JSON
+      const contentType = backendResponse.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        const textResponse = await backendResponse.text()
+        console.error("Backend returned non-JSON response:", textResponse)
+
+        // Clean up temporary data
+        await db.collection("temp_users").deleteOne({ _id: tempUserId })
+        await db.collection("otps").deleteMany({ email: sanitizedEmail })
+
+        return NextResponse.json(
+          { message: "Backend service is currently unavailable. Please try again later." },
+          { status: 503 },
+        )
+      }
 
       const responseData = await backendResponse.json()
       console.log("Backend response status:", backendResponse.status)
@@ -80,7 +97,14 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        throw new Error(responseData.message || "Failed to create user account")
+        // Clean up temporary data on any backend error
+        await db.collection("temp_users").deleteOne({ _id: tempUserId })
+        await db.collection("otps").deleteMany({ email: sanitizedEmail })
+
+        return NextResponse.json(
+          { message: responseData.message || "Failed to create user account" },
+          { status: backendResponse.status },
+        )
       }
 
       const userData = responseData
@@ -112,6 +136,14 @@ export async function POST(request: NextRequest) {
       await db.collection("temp_users").deleteOne({ _id: tempUserId })
       await db.collection("otps").deleteMany({ email: sanitizedEmail })
 
+      // Handle different types of errors
+      if (backendError instanceof TypeError && backendError.message.includes("fetch")) {
+        return NextResponse.json(
+          { message: "Unable to connect to authentication service. Please try again later." },
+          { status: 503 },
+        )
+      }
+
       return NextResponse.json(
         {
           message:
@@ -122,6 +154,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Verify OTP error:", error)
+
+    // Ensure we always return JSON
     return NextResponse.json(
       { message: error instanceof Error ? error.message : "OTP verification failed" },
       { status: 500 },
