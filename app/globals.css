@@ -66,6 +66,11 @@
   }
 }
 
+ ::selection {
+  background: #20deb8;
+  color: #0a0a0a; 
+}
+
 @layer base {
   * {
     @apply border-border; /* Use the defined border color variable */
