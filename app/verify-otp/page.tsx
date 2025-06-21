@@ -133,7 +133,7 @@ export default function VerifyOTPPage() {
       }
 
       toast.success("OTP sent successfully! Please check your email.")
-      setResendTimer(120) // Reset 2-minute timer
+      setResendTimer(120) 
       setOtp("") // Clear current OTP
     } catch (error: any) {
       console.error("Resend OTP error:", error)
