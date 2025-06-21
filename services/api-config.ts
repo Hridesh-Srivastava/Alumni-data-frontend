@@ -1,5 +1,5 @@
 // Central configuration for API connectivity
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === "development"

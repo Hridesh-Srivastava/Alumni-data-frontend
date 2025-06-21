@@ -10,7 +10,7 @@ export function BackendStatus() {
   const [lastChecked, setLastChecked] = useState<Date>(new Date())
   const [showTroubleshooting, setShowTroubleshooting] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string | null>(null)
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
   const checkConnection = async () => {
     try {
@@ -70,15 +70,15 @@ export function BackendStatus() {
             signal: AbortSignal.timeout(3000),
           })
           const end = performance.now()
-          results += `✅ ${endpoint.name} (${Math.round(end - start)}ms)\n`
+          results += ` ${endpoint.name} (${Math.round(end - start)}ms)\n`
         } catch (error) {
-          results += `❌ ${endpoint.name}: ${error instanceof Error ? error.message : "Unknown error"}\n`
+          results += ` ${endpoint.name}: ${error instanceof Error ? error.message : "Unknown error"}\n`
         }
       }
 
       // Check if the server is running on the expected port
       try {
-        const port = API_URL.match(/:(\d+)/)?.[1] || "5000"
+        const port = API_URL.match(/:(\d+)/)?.[1] || "5001"
         results += `\nChecking port ${port}:\n`
 
         const portCheckResponse = await fetch(`http://localhost:${port}`, {
@@ -87,12 +87,12 @@ export function BackendStatus() {
         }).catch((e) => null)
 
         if (portCheckResponse) {
-          results += `✅ Port ${port} is responding\n`
+          results += `Port ${port} is responding\n`
         } else {
-          results += `❌ Port ${port} is not responding\n`
+          results += `Port ${port} is not responding\n`
         }
       } catch (error) {
-        results += `❌ Port check failed: ${error instanceof Error ? error.message : "Unknown error"}\n`
+        results += `Port check failed: ${error instanceof Error ? error.message : "Unknown error"}\n`
       }
 
       setDebugInfo(results)
@@ -152,7 +152,7 @@ export function BackendStatus() {
                 <div className="mt-3">
                   <h6 className="font-medium mb-1">Troubleshooting Steps:</h6>
                   <ol className="list-decimal list-inside text-xs space-y-1">
-                    <li>Check if the backend server is running locally on port 5000</li>
+                    <li>Check if the backend server is running locally on port 5001</li>
                     <li>Verify that the NEXT_PUBLIC_API_URL environment variable is set correctly</li>
                     <li>Check for CORS issues in the browser console</li>
                     <li>Ensure MongoDB is running and accessible</li>

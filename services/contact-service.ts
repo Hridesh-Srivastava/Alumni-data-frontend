@@ -1,9 +1,8 @@
-import api, { checkBackendStatus } from "./backend-service"
+import { checkBackendStatus } from "./backend-service"
 import axios from "axios"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
-// Helper function to get contacts from localStorage
 const getStoredContacts = () => {
   try {
     const storedContacts = localStorage.getItem("contactMessages")
@@ -24,52 +23,40 @@ const saveContactsToLocalStorage = (contacts) => {
 }
 
 export const sendContactMessage = async (contactData) => {
+  console.log("FRONTEND: Sending contact message")
+  console.log("FRONTEND: Contact data:", contactData)
+
   try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(contactData),
+    })
 
-    if (isBackendAvailable) {
-      // Backend is available, send to API
-      try {
-        // Use direct axios call to avoid potential issues with the api instance
-        const response = await axios.post(`${API_URL}/contact`, contactData, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
+    console.log("FRONTEND: Response status:", response.status)
 
-        console.log("Contact message sent to backend:", response.data)
-
-        // Also store in localStorage for development convenience
-        storeContactInLocalStorage(contactData, response.data._id)
-
-        return response.data
-      } catch (error) {
-        console.error("Error sending message to backend:", error)
-        // Fall back to localStorage
-        storeContactInLocalStorage(contactData)
-        throw error
-      }
-    } else {
-      // Backend is not available, store in localStorage only
-      console.log("Backend unavailable: Contact message stored in localStorage only")
-
-      storeContactInLocalStorage(contactData)
-
-      return {
-        success: true,
-        message: "Contact message received successfully (Development Mode)",
-      }
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
+
+    const result = await response.json()
+    console.log("FRONTEND: Success:", result)
+
+    storeContactInLocalStorage(contactData, result._id)
+
+    return result
   } catch (error) {
-    console.error("Error sending message:", error)
-    // Still store in localStorage as fallback
+    console.error("FRONTEND: Contact form submission failed:", error)
+
     storeContactInLocalStorage(contactData)
+
     throw error
   }
 }
 
-// Helper function to store contact in localStorage
 function storeContactInLocalStorage(contactData, id) {
   try {
     const storedMessages = getStoredContacts()
@@ -81,9 +68,9 @@ function storeContactInLocalStorage(contactData, id) {
 
     storedMessages.push(newMessage)
     saveContactsToLocalStorage(storedMessages)
-    console.log("Contact message stored in localStorage:", newMessage)
+    console.log("FRONTEND: Contact message stored in localStorage:", newMessage)
   } catch (error) {
-    console.error("Error storing contact in localStorage:", error)
+    console.error("FRONTEND: Error storing contact in localStorage:", error)
   }
 }
 
@@ -93,12 +80,15 @@ export const getContactMessages = async () => {
     const isBackendAvailable = await checkBackendStatus()
 
     if (isBackendAvailable) {
-      // Backend is available, get from API
-      const response = await api.get("/contact")
+      const response = await axios.get(`${API_URL}/contact`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      console.log("FRONTEND: Contact messages fetched from Express backend:", response.data)
       return response.data
     } else {
-      // Backend is not available, get from localStorage
-      console.log("Backend unavailable: Returning contact messages from localStorage")
+      console.log("FRONTEND: Express backend unavailable, returning contact messages from localStorage")
 
       const storedMessages = getStoredContacts()
 
@@ -127,9 +117,8 @@ export const getContactMessages = async () => {
       ]
     }
   } catch (error) {
-    console.error("Error fetching messages:", error)
+    console.error("FRONTEND: Error fetching messages from Express backend:", error)
 
-    // Return from localStorage as fallback
     const storedMessages = getStoredContacts()
 
     if (storedMessages.length > 0) {
@@ -140,3 +129,33 @@ export const getContactMessages = async () => {
   }
 }
 
+export const testContactFormEmail = async () => {
+  try {
+    const response = await fetch("/api/contact/test-email")
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log("FRONTEND: Contact form email test successful:", result)
+    return result
+  } catch (error) {
+    console.error("FRONTEND: Contact form email test failed:", error)
+    throw error
+  }
+}
+
+// Test Express backend connection (uses API_URL)
+export const testExpressBackend = async () => {
+  try {
+    console.log("FRONTEND: Testing Express backend connection...")
+    const response = await axios.get(`${API_URL}/health`)
+    console.log("FRONTEND: Express backend test successful:", response.data)
+    return response.data
+  } catch (error) {
+    console.error("FRONTEND: Express backend test failed:", error)
+    throw error
+  }
+}
