@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { Loader2, User, Lock, Eye, EyeOff, Check, X } from "lucide-react"
 import Link from "next/link"
 import { updatePassword } from "@/services/auth-service"
+import { UserAvatar } from "@/components/user-avatar"
 
 interface PasswordRule {
   label: string
@@ -17,10 +18,15 @@ interface PasswordRule {
 }
 
 export default function ProfilePage() {
-  const { user, updateProfile, loading } = useAuth()
+  const { user, updateProfile, updateAvatar, loading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isPasswordLoading, setIsPasswordLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("personal")
+
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    // Update the user state with new avatar
+    updateAvatar(newAvatarUrl)
+  }
 
   // Password visibility states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -98,6 +104,8 @@ export default function ProfilePage() {
       await updateProfile({
         name: formData.name,
         email: formData.email,
+        avatar: user?.avatar, // Preserve the avatar
+        isOAuthUser: user?.isOAuthUser, // Preserve OAuth status
       })
 
       toast.success("Profile updated successfully")
@@ -243,7 +251,31 @@ export default function ProfilePage() {
               <CardDescription>Update your personal details</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePersonalInfoSubmit} className="space-y-4">
+              <form onSubmit={handlePersonalInfoSubmit} className="space-y-6">
+                {/* Avatar Section */}
+                <div className="space-y-4">
+                  <Label>Profile Picture</Label>
+                  <div className="flex items-center space-x-4">
+                    <UserAvatar 
+                      user={user} 
+                      size="lg" 
+                      showUploadButton={true}
+                      onAvatarUpdate={handleAvatarUpdate}
+                    />
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        {user?.isOAuthUser 
+                          ? "Your Google profile picture is automatically synced. Click the camera icon to upload a custom image."
+                          : "Upload a profile picture to personalize your account."
+                        }
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Supported formats: JPG, PNG, WebP (max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" name="name" value={formData.name} onChange={handleChange} required />

@@ -26,18 +26,27 @@ export default function VerifyOTPPage() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Get email and tempUserId from URL params
+    // Get email, tempUserId, and OAuth data from URL params
     const emailParam = searchParams.get("email")
     const userIdParam = searchParams.get("userId")
+    const isOAuth = searchParams.get("oauth") === "true"
+    const oauthDataParam = searchParams.get("oauthData")
 
-    if (!emailParam || !userIdParam) {
+    if (!emailParam) {
+      toast.error("Invalid verification link")
+      router.push("/register")
+      return
+    }
+
+    // For OAuth users, we don't need tempUserId
+    if (!isOAuth && !userIdParam) {
       toast.error("Invalid verification link")
       router.push("/register")
       return
     }
 
     setEmail(emailParam)
-    setTempUserId(userIdParam)
+    if (userIdParam) setTempUserId(userIdParam)
 
     // Start 2-minute timer for resend
     setResendTimer(120)
@@ -59,10 +68,14 @@ export default function VerifyOTPPage() {
     setError("")
   }
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleVerifyOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
 
-    if (!otp || otp.length !== 6) {
+    const isOAuth = searchParams.get("oauth") === "true"
+    const oauthDataParam = searchParams.get("oauthData")
+
+    // For OAuth users, skip OTP validation
+    if (!isOAuth && (!otp || otp.length !== 6)) {
       setError("Please enter a valid 6-digit OTP")
       return
     }
@@ -71,38 +84,112 @@ export default function VerifyOTPPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          otp,
-          tempUserId,
-        }),
-      })
+      if (isOAuth && oauthDataParam) {
+        // Handle OAuth user verification
+        const oauthData = JSON.parse(decodeURIComponent(oauthDataParam))
+        
+        const response = await fetch("/api/auth/verify-oauth", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            otp: "000000", // Dummy OTP for OAuth users
+            oauthData,
+          }),
+        })
 
-      const data = await response.json()
+        const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.message || "OTP verification failed")
+        if (!response.ok) {
+          throw new Error(data.message || "OAuth verification failed")
+        }
+
+        // Store user data and token
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Storing user data:", data)
+        }
+        
+        // Ensure we have the correct data structure
+        const userData = data
+        const token = data.token
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Received data from backend:", data)
+          console.log("User data to store:", userData)
+        }
+        
+        if (!userData || !userData._id || !token) {
+          throw new Error("Invalid response data structure")
+        }
+        
+        localStorage.setItem("token", token)
+        localStorage.setItem("user", JSON.stringify(userData))
+
+        // Set cookie for middleware
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${
+          process.env.NODE_ENV === "production" ? "; Secure" : ""
+        }`
+
+        toast.success("Registration completed successfully!")
+        
+        // Force a page reload to ensure AuthContext picks up the new data
+        window.location.href = "/dashboard"
+      } else {
+        // Handle regular user verification
+        const response = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            otp,
+            tempUserId,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || "OTP verification failed")
+        }
+
+        // Store user data and token
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Storing user data:", data)
+        }
+        
+        // Ensure we have the correct data structure
+        const userData = data.user
+        const token = data.token
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Received data from backend:", data)
+          console.log("User data to store:", userData)
+        }
+        
+        if (!userData || !userData._id || !token) {
+          throw new Error("Invalid response data structure")
+        }
+        
+        localStorage.setItem("token", token)
+        localStorage.setItem("user", JSON.stringify(userData))
+
+        // Set cookie for middleware
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${
+          process.env.NODE_ENV === "production" ? "; Secure" : ""
+        }`
+
+        toast.success("Email verified successfully!")
+        
+        // Force a page reload to ensure AuthContext picks up the new data
+        window.location.href = "/dashboard"
       }
-
-      // Store user data and token
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("user", JSON.stringify(data.user))
-
-      // Set cookie for middleware
-      document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${
-        process.env.NODE_ENV === "production" ? "; Secure" : ""
-      }`
-
-      toast.success("Email verified successfully!")
-      router.push("/dashboard")
     } catch (error: any) {
       console.error("OTP verification error:", error)
-      setError(error.message || "OTP verification failed. Please try again.")
+      setError(error.message || "Verification failed. Please try again.")
     } finally {
       setIsVerifying(false)
     }
@@ -115,26 +202,37 @@ export default function VerifyOTPPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/resend-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          tempUserId,
-        }),
-      })
+      const isOAuth = searchParams.get("oauth") === "true"
 
-      const data = await response.json()
+      if (isOAuth) {
+        // For OAuth users, we'll redirect back to Google OAuth
+        toast.success("Redirecting to Google for re-authentication...")
+        setTimeout(() => {
+          window.location.href = "/api/auth/google"
+        }, 1000)
+      } else {
+        // For regular users, resend OTP
+        const response = await fetch("/api/auth/resend-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            tempUserId,
+          }),
+        })
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to resend OTP")
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to resend OTP")
+        }
+
+        toast.success("OTP sent successfully! Please check your email.")
+        setResendTimer(120) 
+        setOtp("") // Clear current OTP
       }
-
-      toast.success("OTP sent successfully! Please check your email.")
-      setResendTimer(120) 
-      setOtp("") // Clear current OTP
     } catch (error: any) {
       console.error("Resend OTP error:", error)
       setError(error.message || "Failed to resend OTP. Please try again.")
@@ -164,11 +262,23 @@ export default function VerifyOTPPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Mail className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">Verify Your Email</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {searchParams.get("oauth") === "true" ? "Complete Registration" : "Verify Your Email"}
+          </CardTitle>
           <CardDescription>
-            We've sent a 6-digit verification code to
-            <br />
-            <strong>{email}</strong>
+            {searchParams.get("oauth") === "true" ? (
+              <>
+                Please verify your email to complete your Google account registration
+                <br />
+                <strong>{email}</strong>
+              </>
+            ) : (
+              <>
+                We've sent a 6-digit verification code to
+                <br />
+                <strong>{email}</strong>
+              </>
+            )}
           </CardDescription>
         </CardHeader>
 
@@ -180,58 +290,86 @@ export default function VerifyOTPPage() {
             </Alert>
           )}
 
-          <form onSubmit={handleVerifyOTP} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="otp">Verification Code</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter 6-digit code"
-                value={otp}
-                onChange={handleOTPChange}
-                className="text-center text-lg tracking-widest"
-                maxLength={6}
+          {searchParams.get("oauth") === "true" ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Your Google account has been verified. Click below to complete registration.
+                </p>
+              </div>
+              <Button 
+                onClick={() => handleVerifyOTP()} 
+                className="w-full" 
                 disabled={isVerifying}
-                autoComplete="one-time-code"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground text-center">Enter the 6-digit code sent to your email</p>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isVerifying || otp.length !== 6}>
-              {isVerifying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                "Verify Email"
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground mb-2">Didn't receive the code?</p>
-
-            {resendTimer > 0 ? (
-              <p className="text-sm text-muted-foreground">Resend available in {formatTime(resendTimer)}</p>
-            ) : (
-              <Button variant="outline" onClick={handleResendOTP} disabled={isResending} className="w-full">
-                {isResending ? (
+              >
+                {isVerifying ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    Completing Registration...
                   </>
                 ) : (
-                  "Resend Code"
+                  "Complete Registration"
                 )}
               </Button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp">Verification Code</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={otp}
+                  onChange={handleOTPChange}
+                  className="text-center text-lg tracking-widest"
+                  maxLength={6}
+                  disabled={isVerifying}
+                  autoComplete="one-time-code"
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground text-center">Enter the 6-digit code sent to your email</p>
+              </div>
 
-          <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground">Check your spam folder if you don't see the email</p>
-          </div>
+              <Button type="submit" className="w-full" disabled={isVerifying || otp.length !== 6}>
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Verify Email"
+                )}
+              </Button>
+            </form>
+          )}
+
+          {searchParams.get("oauth") !== "true" && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground mb-2">Didn't receive the code?</p>
+
+              {resendTimer > 0 ? (
+                <p className="text-sm text-muted-foreground">Resend available in {formatTime(resendTimer)}</p>
+              ) : (
+                <Button variant="outline" onClick={handleResendOTP} disabled={isResending} className="w-full">
+                  {isResending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Resend Code"
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {searchParams.get("oauth") !== "true" && (
+            <div className="mt-4 text-center">
+              <p className="text-xs text-muted-foreground">Check your spam folder if you don't see the email</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

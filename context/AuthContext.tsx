@@ -10,6 +10,8 @@ interface User {
   name: string
   email: string
   role: string
+  avatar?: string
+  isOAuthUser?: boolean
   token?: string
   settings?: {
     notifications?: {
@@ -36,6 +38,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
   updateProfile: (userData: any) => Promise<void>
+  updateAvatar: (newAvatarUrl: string) => Promise<void>
   updateSettings: (settings: any) => Promise<void>
 }
 
@@ -48,6 +51,7 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   logout: () => {},
   updateProfile: async () => {},
+  updateAvatar: async () => {},
   updateSettings: async () => {},
 })
 
@@ -68,10 +72,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const storedUser = localStorage.getItem("user")
     const storedToken = localStorage.getItem("token")
 
-    if (storedUser && storedToken) {
+    if (storedUser && storedToken && storedUser !== "undefined" && storedToken !== "undefined") {
       try {
-        setUser(JSON.parse(storedUser))
-        setToken(storedToken)
+        const parsedUser = JSON.parse(storedUser)
+        
+        if (parsedUser && typeof parsedUser === "object" && parsedUser._id) {
+          setUser(parsedUser)
+          setToken(storedToken)
+        } else {
+          throw new Error("Invalid user data structure")
+        }
       } catch (error) {
         console.error("Error parsing stored user:", error)
         // Clear invalid data
@@ -87,7 +97,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
-      console.log("Attempting login with:", { email, url: `${API_URL}/auth/login` })
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Attempting login with:", { email, url: `${API_URL}/auth/login` })
+      }
 
       // Ensure email is lowercase and trimmed
       const loginData = {
@@ -102,7 +114,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         timeout: 10000, // 10 seconds timeout
       })
 
-      console.log("Login response:", response.data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Login response:", response.data)
+      }
 
       // Extract user data and token
       const userData = response.data
@@ -153,7 +167,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
-      console.log("Attempting registration with:", { name, email, url: `${API_URL}/auth/register` })
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Attempting registration with:", { name, email, url: `${API_URL}/auth/register` })
+      }
 
       const response = await axios.post(
         `${API_URL}/auth/register`,
@@ -170,7 +186,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         },
       )
 
-      console.log("Registration response:", response.data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Registration response:", response.data)
+      }
 
       // Extract user data and token
       const userData = response.data
@@ -272,6 +290,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }
 
+  const updateAvatar = async (newAvatarUrl: string) => {
+    try {
+      if (!user) {
+        throw new Error("User not found")
+      }
+
+      // Update local user state immediately for better UX
+      const updatedUser = { ...user, avatar: newAvatarUrl }
+      setUser(updatedUser)
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+
+      toast.success("Avatar updated successfully")
+    } catch (error) {
+      console.error("Update avatar error:", error)
+      toast.error("Failed to update avatar")
+    }
+  }
+
   const updateSettings = async (settings: any) => {
     try {
       if (!token) {
@@ -348,6 +384,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         register,
         logout,
         updateProfile,
+        updateAvatar,
         updateSettings,
       }}
     >

@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Image from "next/image";
+import { UserAvatar } from "@/components/user-avatar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -157,11 +158,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="border-t p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-primary font-medium">
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
-                  </span>
-                </div>
+                <UserAvatar user={user} size="sm" />
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium">{user?.name || "User"}</p>
                   <p className="text-xs text-muted-foreground">
