@@ -641,7 +641,146 @@ export const deleteAlumni = async (id, token) => {
     }
   } catch (error) {
     console.error("Error deleting alumni:", error)
-    throw error
+    
+    // Enhanced error handling
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error("Error response data:", error.response.data)
+      console.error("Error response status:", error.response.status)
+      console.error("Error response headers:", error.response.headers)
+      
+      if (error.response.status === 401) {
+        throw new Error("Authentication failed. Please log in again.")
+      } else if (error.response.status === 403) {
+        throw new Error("Access denied. You don't have permission to delete alumni.")
+      } else if (error.response.status === 404) {
+        throw new Error("Alumni not found.")
+      } else if (error.response.status === 500) {
+        throw new Error("Server error. Please try again later.")
+      } else {
+        throw new Error(error.response.data?.message || `Server error (${error.response.status})`)
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error("No response received:", error.request)
+      throw new Error("No response from server. Please check your connection.")
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error("Request setup error:", error.message)
+      throw new Error(`Request failed: ${error.message}`)
+    }
+  }
+}
+
+// Function to delete multiple alumni
+export const deleteMultipleAlumni = async (ids, token) => {
+  try {
+    console.log("Starting bulk delete operation for alumni IDs:", ids)
+    console.log("Token provided:", token ? `${token.slice(0, 15)}...` : "No token")
+
+    // Check if backend is available
+    const isBackendAvailable = await checkBackendStatus()
+    console.log("Backend available:", isBackendAvailable)
+
+    if (isBackendAvailable) {
+      // Backend is available, use real API
+      // Make sure we have a token
+      if (!token) {
+        console.log("No token provided, checking localStorage")
+        token = localStorage.getItem("token")
+        console.log("Token from localStorage:", token ? `${token.slice(0, 15)}...` : "No token in localStorage")
+      }
+
+      if (!token) {
+        console.error("No authentication token available")
+        throw new Error("Authentication required. Please log in again.")
+      }
+
+      // Use direct axios call with proper authorization
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hsst-alumni-backend.vercel.app/api"
+      console.log("Using API URL:", API_URL)
+
+      // Ensure token is properly formatted
+      const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`
+      console.log("Authorization header:", authHeader.slice(0, 20) + "...")
+
+      // Log the full request details for debugging
+      console.log("Making DELETE request to:", `${API_URL}/alumni/bulk`)
+      console.log("With headers:", {
+        "Content-Type": "application/json",
+        Authorization: authHeader.slice(0, 20) + "...",
+      })
+
+      const response = await axios({
+        method: "delete",
+        url: `${API_URL}/alumni/bulk`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        data: { ids },
+        timeout: 15000, // Increased timeout
+      })
+
+      console.log("Bulk delete response:", response.data)
+
+      // Also delete from localStorage for development convenience
+      const mockAlumni = getStoredAlumni()
+      const filteredAlumni = mockAlumni.filter((a) => !ids.includes(a._id))
+      saveAlumniToLocalStorage(filteredAlumni)
+
+      return response.data
+    } else {
+      // Backend is not available, use mock data
+      console.log("Backend unavailable: Deleting alumni from localStorage only")
+
+      const mockAlumni = getStoredAlumni()
+      const filteredAlumni = mockAlumni.filter((a) => !ids.includes(a._id))
+
+      if (filteredAlumni.length === mockAlumni.length) {
+        throw new Error("No alumni found to delete")
+      }
+
+      saveAlumniToLocalStorage(filteredAlumni)
+
+      // Return mock response
+      return {
+        message: `${mockAlumni.length - filteredAlumni.length} alumni removed successfully`,
+        deletedCount: mockAlumni.length - filteredAlumni.length
+      }
+    }
+  } catch (error) {
+    console.error("Error deleting multiple alumni:", error)
+    
+    // Enhanced error handling
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error("Error response data:", error.response.data)
+      console.error("Error response status:", error.response.status)
+      console.error("Error response headers:", error.response.headers)
+      
+      if (error.response.status === 401) {
+        throw new Error("Authentication failed. Please log in again.")
+      } else if (error.response.status === 403) {
+        throw new Error("Access denied. You don't have permission to delete alumni.")
+      } else if (error.response.status === 404) {
+        throw new Error("No alumni found to delete.")
+      } else if (error.response.status === 500) {
+        throw new Error("Server error. Please try again later.")
+      } else {
+        throw new Error(error.response.data?.message || `Server error (${error.response.status})`)
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error("No response received:", error.request)
+      throw new Error("No response from server. Please check your connection.")
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error("Request setup error:", error.message)
+      throw new Error(`Request failed: ${error.message}`)
+    }
   }
 }
 

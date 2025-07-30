@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { getAlumni, getAlumniById } from "@/services/alumni-service"
+import { getAlumni, getAlumniById, deleteAlumni, deleteMultipleAlumni } from "@/services/alumni-service"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,7 +15,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Loader2, AlertCircle, Eye, Pencil, Download } from "lucide-react"
+import { Loader2, AlertCircle, Eye, Pencil, Download, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
@@ -68,6 +68,7 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
   const [error, setError] = useState<string | null>(null)
   const [selectedAlumni, setSelectedAlumni] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { token, isAuthenticated } = useAuth()
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -313,6 +314,60 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
     }
   }
 
+  const handleDeleteAlumni = async (alumniId: string) => {
+    if (!confirm("Are you sure you want to delete this alumni? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      await deleteAlumni(alumniId, token)
+      toast.success("Alumni deleted successfully")
+      
+      // Refresh the data
+      const currentPage = pagination.currentPage
+      setPagination({ ...pagination, currentPage: 1 })
+      setTimeout(() => {
+        setPagination({ ...pagination, currentPage })
+      }, 100)
+    } catch (error: any) {
+      console.error("Error deleting alumni:", error)
+      toast.error(error.message || "Failed to delete alumni")
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedAlumni.size === 0) {
+      toast.error("Please select at least one alumni to delete")
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedAlumni.size} alumni? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const ids = Array.from(selectedAlumni)
+      await deleteMultipleAlumni(ids, token)
+      toast.success(`${selectedAlumni.size} alumni deleted successfully`)
+      
+      // Clear selections
+      setSelectedAlumni(new Set())
+      
+      // Refresh the data
+      const currentPage = pagination.currentPage
+      setPagination({ ...pagination, currentPage: 1 })
+      setTimeout(() => {
+        setPagination({ ...pagination, currentPage })
+      }, 100)
+    } catch (error: any) {
+      console.error("Bulk delete error:", error)
+      toast.error(error.message || "Failed to delete alumni")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -360,22 +415,43 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
             )}
           </div>
 
-          {/* Professional Download Button */}
-          <Button
-            onClick={handleBulkExcelDownload}
-            disabled={!hasSelection || isDownloading}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-              ${
-                hasSelection
-                  ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200"
-              }
-            `}
-          >
-            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Download Selected ({selectedAlumni.size})
-          </Button>
+          {/* Bulk Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Professional Download Button */}
+            <Button
+              onClick={handleBulkExcelDownload}
+              disabled={!hasSelection || isDownloading}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                ${
+                  hasSelection
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200"
+                }
+              `}
+            >
+              {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Download Selected ({selectedAlumni.size})
+            </Button>
+
+            {/* Professional Delete Button */}
+            <Button
+              onClick={handleBulkDelete}
+              disabled={!hasSelection || isDeleting}
+              variant="destructive"
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                ${
+                  hasSelection
+                    ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-sm hover:shadow-md"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200"
+                }
+              `}
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete Selected ({selectedAlumni.size})
+            </Button>
+          </div>
         </div>
       )}
 
@@ -423,6 +499,15 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
                           <Pencil className="h-4 w-4 mr-1" />
                           Edit
                         </Link>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDeleteAlumni(alumnus._id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </TableCell>
