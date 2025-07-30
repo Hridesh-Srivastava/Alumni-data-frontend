@@ -6,7 +6,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Search, X } from "lucide-react"
+import { Search, X, Loader2 } from "lucide-react"
+import { getAcademicUnits, getPrograms, getPassingYears } from "@/services/alumni-service"
 
 interface AlumniFilterProps {
   onFilterChange: (filter: {
@@ -17,33 +18,40 @@ interface AlumniFilterProps {
 }
 
 export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
-  const [academicUnit, setAcademicUnit] = useState("")
-  const [passingYear, setPassingYear] = useState("")
+  const [academicUnit, setAcademicUnit] = useState("all") // Start with "all" instead of empty string
+  const [passingYear, setPassingYear] = useState("all") // Start with "all" instead of empty string
   const [program, setProgram] = useState("")
-  const [yearOptions, setYearOptions] = useState<string[]>([])
+  const [academicUnits, setAcademicUnits] = useState<string[]>([])
+  const [programs, setPrograms] = useState<string[]>([])
+  const [passingYears, setPassingYears] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
- 
+  // Fetch academic units, programs, and passing years
   useEffect(() => {
-    const generateYearOptions = () => {
-      const currentYear = new Date().getFullYear()
-      const startYear = 2015
-      const endYear = currentYear + 10
-
-      const years: string[] = []
-
-      for (let year = startYear; year <= endYear; year++) {
-        const nextYearShort = (year + 1).toString().slice(-2).padStart(2, '0')
-        years.push(`${year}-${nextYearShort}`)
+    const fetchData = async () => {
+      setIsLoading(true)
+      try {
+        const [units, programsList, yearsList] = await Promise.all([
+          getAcademicUnits(),
+          getPrograms(),
+          getPassingYears()
+        ])
+        setAcademicUnits(units || [])
+        setPrograms(programsList || [])
+        setPassingYears(yearsList || [])
+        // Don't reset academicUnit here since it's already "all"
+      } catch (error) {
+        console.error("Error fetching filter data:", error)
+        // Set default values on error
+        setAcademicUnits(["School of Science and Technology"])
+        setPrograms(["BCA", "B.Tech", "MCA", "M.Tech"])
+        setPassingYears([])
+      } finally {
+        setIsLoading(false)
       }
-
-      return years.sort((a, b) => {
-        const yearA = parseInt(a.split('-')[0])
-        const yearB = parseInt(b.split('-')[0])
-        return yearB - yearA
-      })
     }
 
-    setYearOptions(generateYearOptions())
+    fetchData()
   }, [])
 
   const handleApplyFilter = () => {
@@ -55,12 +63,12 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
   }
 
   const handleResetFilter = () => {
-    setAcademicUnit("")
-    setPassingYear("")
+    setAcademicUnit("all") // Reset to "all" instead of empty string
+    setPassingYear("all") // Reset to "all" instead of empty string
     setProgram("")
     onFilterChange({
-      academicUnit: "",
-      passingYear: "",
+      academicUnit: "all", // Send "all" instead of empty string
+      passingYear: "all", // Send "all" instead of empty string
       program: "",
     })
   }
@@ -72,13 +80,26 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
         
           <div className="space-y-2">
             <Label htmlFor="academicUnit">Academic Unit</Label>
-            <Select value={academicUnit} onValueChange={setAcademicUnit}>
+            <Select value={academicUnit} onValueChange={setAcademicUnit} disabled={isLoading}>
               <SelectTrigger id="academicUnit">
-                <SelectValue placeholder="Select Academic Unit" />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select Academic Unit"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Units</SelectItem>
-                <SelectItem value="School of Science and Technology">SST</SelectItem>
+                {isLoading ? (
+                  <SelectItem value="loading" disabled>
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading Units...
+                    </div>
+                  </SelectItem>
+                ) : (
+                  academicUnits.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -92,7 +113,7 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
               </SelectTrigger>
               <SelectContent className="max-h-[300px] overflow-y-auto">
                 <SelectItem value="all">All Years</SelectItem>
-                {yearOptions.map((year) => (
+                {passingYears.map((year) => (
                   <SelectItem key={year} value={year}>
                     {year}
                   </SelectItem>
@@ -104,13 +125,29 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
          
           <div className="space-y-2">
             <Label htmlFor="program">Program</Label>
-            <Input
-              id="program"
-              placeholder="e.g. BCA, B.Tech, MCA, M.Tech, BSc., MSc."
-              value={program}
-              onChange={(e) => setProgram(e.target.value)}
-              className="min-w-[200px]"
-            />
+            <div className="relative">
+              <Input
+                id="program"
+                placeholder="e.g. BCA, B.Tech, MCA, M.Tech, BSc., MSc."
+                value={program}
+                onChange={(e) => setProgram(e.target.value)}
+                className="min-w-[200px]"
+                list="program-suggestions"
+              />
+              {programs.length > 0 && (
+                <datalist id="program-suggestions">
+                  {programs.map((prog) => (
+                    <option key={prog} value={prog} />
+                  ))}
+                </datalist>
+              )}
+            </div>
+            {programs.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Available programs: {programs.slice(0, 5).join(", ")}
+                {programs.length > 5 && ` and ${programs.length - 5} more...`}
+              </p>
+            )}
           </div>
         </div>
       </CardContent>

@@ -67,6 +67,7 @@ export default function NewAlumniPage() {
   const [basicInfoImage, setBasicInfoImage] = useState<File | null>(null)
   const [qualificationImage, setQualificationImage] = useState<File | null>(null)
   const [employmentImage, setEmploymentImage] = useState<File | null>(null)
+  const [higherEducationImage, setHigherEducationImage] = useState<File | null>(null)
 
   // Define form with default values
   const form = useForm<AlumniFormValues>({
@@ -124,6 +125,7 @@ export default function NewAlumniPage() {
         basicInfoImage,
         qualificationImage,
         employmentImage,
+        higherEducationImage,
         academicUnit: "School of Science and Technology", // Always set to SST
       }
 
@@ -320,7 +322,7 @@ export default function NewAlumniPage() {
 
                   {/* Basic Info File Upload */}
                   <div className="space-y-2">
-                    <FormLabel>Upload Basic Info Document</FormLabel>
+                    <FormLabel>Upload Your Identity Document</FormLabel>
                     <div className="flex items-center gap-2">
                       <Input
                         type="file"
@@ -332,7 +334,7 @@ export default function NewAlumniPage() {
                         <div className="text-sm text-green-600">File selected: {basicInfoImage.name}</div>
                       )}
                     </div>
-                    <FormDescription>Upload any supporting document for basic information (optional)</FormDescription>
+                    <FormDescription>Upload any supporting document for identity information (optional)</FormDescription>
                   </div>
                 </CardContent>
               </Card>
@@ -583,6 +585,23 @@ export default function NewAlumniPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Higher Education File Upload */}
+                  <div className="space-y-2">
+                    <FormLabel>Upload Higher Education Document</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileChange(e, setHigherEducationImage)}
+                        className="flex-1"
+                      />
+                      {higherEducationImage && (
+                        <div className="text-sm text-green-600">File selected: {higherEducationImage.name}</div>
+                      )}
+                    </div>
+                    <FormDescription>Upload document for higher education (optional)</FormDescription>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -730,6 +749,10 @@ export default function NewAlumniPage() {
                         <div className="grid grid-cols-3 gap-1">
                           <p className="font-medium">Program:</p>
                           <p className="col-span-2">{form.watch("higherEducation.programName") || "Not provided"}</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          <p className="font-medium">Document:</p>
+                          <p className="col-span-2">{higherEducationImage ? higherEducationImage.name : "Not provided"}</p>
                         </div>
                       </div>
                     </div>

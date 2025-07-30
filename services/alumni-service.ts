@@ -40,10 +40,14 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
 
     if (isBackendAvailable) {
       // Backend is available, use real API
-      const { page = 1, limit = 10, passingYear, program } = filter
+      const { page = 1, limit = 10, passingYear, program, academicUnit } = filter
 
-      // Always filter for SST engineering department
+      // Build URL with filters
       let url = `/alumni?page=${page}&limit=${limit}`
+
+      if (academicUnit && academicUnit !== "all") {
+        url += `&academicUnit=${encodeURIComponent(academicUnit)}`
+      }
 
       if (passingYear && passingYear !== "all") {
         url += `&passingYear=${encodeURIComponent(passingYear)}`
@@ -65,7 +69,7 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
       // Backend is not available, use mock data
       console.log("Backend unavailable: Using mock alumni data")
 
-      const { page = 1, limit = 10, passingYear, program } = filter
+      const { page = 1, limit = 10, passingYear, program, academicUnit } = filter
 
       // Get stored alumni
       const mockAlumni = getStoredAlumni()
@@ -73,8 +77,13 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
       // Filter mock data based on criteria
       let filteredAlumni = [...mockAlumni]
 
-      // Always filter for SST engineering department
-      filteredAlumni = filteredAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
+      // Filter by academic unit
+      if (academicUnit && academicUnit !== "all") {
+        filteredAlumni = filteredAlumni.filter((a) => a.academicUnit === academicUnit)
+      } else {
+        // If "all" is selected, don't filter by academic unit - show all
+        filteredAlumni = mockAlumni
+      }
 
       if (passingYear && passingYear !== "all") {
         filteredAlumni = filteredAlumni.filter((a) => a.passingYear === passingYear)
@@ -108,8 +117,12 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
     // Fallback to localStorage
     const mockAlumni = getStoredAlumni()
 
-    // Filter for SST engineering department
-    const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
+    // Filter by academic unit
+    let filteredAlumni = mockAlumni
+    if (filter.academicUnit && filter.academicUnit !== "all") {
+      filteredAlumni = mockAlumni.filter((a) => a.academicUnit === filter.academicUnit)
+    }
+    // If "all" is selected, don't filter by academic unit - show all
 
     return {
       data: filteredAlumni,
@@ -120,6 +133,97 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
         totalPages: Math.ceil(filteredAlumni.length / 10),
       },
     }
+  }
+}
+
+// Function to fetch all available academic units
+export const getAcademicUnits = async () => {
+  try {
+    // Check if backend is available
+    const isBackendAvailable = await checkBackendStatus()
+
+    if (isBackendAvailable) {
+      // Backend is available, use real API - use the academic units endpoint
+      const response = await api.get("/academic-units")
+      // Extract just the names from the academic units
+      return response.data.map((unit: any) => unit.name) || []
+    } else {
+      // Backend is not available, use mock data
+      console.log("Backend unavailable: Using mock academic units")
+      const mockAlumni = getStoredAlumni()
+      
+      // Get unique academic units from mock data
+      const academicUnits = [...new Set(mockAlumni.map(alumni => alumni.academicUnit))]
+      return academicUnits.sort()
+    }
+  } catch (error) {
+    console.error("Error fetching academic units:", error)
+    
+    // Fallback to default units
+    return ["School of Science and Technology"]
+  }
+}
+
+// Function to fetch all available programs
+export const getPrograms = async () => {
+  try {
+    // Check if backend is available
+    const isBackendAvailable = await checkBackendStatus()
+
+    if (isBackendAvailable) {
+      // Backend is available, use real API
+      const response = await api.get("/alumni/programs")
+      return response.data.data || []
+    } else {
+      // Backend is not available, use mock data
+      console.log("Backend unavailable: Using mock programs")
+      const mockAlumni = getStoredAlumni()
+      
+      // Get unique programs from mock data
+      const programs = [...new Set(mockAlumni.map(alumni => alumni.program))]
+      return programs.sort()
+    }
+  } catch (error) {
+    console.error("Error fetching programs:", error)
+    
+    // Fallback to default programs
+    return ["BCA", "B.Tech", "MCA", "M.Tech", "BSc.", "MSc."]
+  }
+}
+
+// Function to fetch all available passing years
+export const getPassingYears = async () => {
+  try {
+    // Check if backend is available
+    const isBackendAvailable = await checkBackendStatus()
+
+    if (isBackendAvailable) {
+      // Backend is available, use real API
+      const response = await api.get("/alumni/passing-years")
+      return response.data.data || []
+    } else {
+      // Backend is not available, use mock data
+      console.log("Backend unavailable: Using mock passing years")
+      const mockAlumni = getStoredAlumni()
+      
+      // Get unique passing years from mock data
+      const passingYears = [...new Set(mockAlumni.map(alumni => alumni.passingYear))]
+      return passingYears.sort((a, b) => {
+        const yearA = parseInt(a.split('-')[0])
+        const yearB = parseInt(b.split('-')[0])
+        return yearB - yearA
+      })
+    }
+  } catch (error) {
+    console.error("Error fetching passing years:", error)
+    
+    // Fallback to generated years
+    const currentYear = new Date().getFullYear()
+    const years = []
+    for (let year = currentYear; year >= 2015; year--) {
+      years.push(`${year}-${(year + 1).toString().slice(-2)}`)
+    }
+    return years
   }
 }
 
@@ -189,12 +293,12 @@ export const createAlumni = async (alumniData) => {
         }
 
         // Handle file uploads if present
-        if (alumniData.basicInfoImage || alumniData.qualificationImage || alumniData.employmentImage) {
+        if (alumniData.basicInfoImage || alumniData.qualificationImage || alumniData.employmentImage || alumniData.higherEducationImage) {
           const formData = new FormData()
 
           // Add all regular fields to formData
           Object.keys(alumniData).forEach((key) => {
-            if (key !== "basicInfoImage" && key !== "qualificationImage" && key !== "employmentImage") {
+            if (key !== "basicInfoImage" && key !== "qualificationImage" && key !== "employmentImage" && key !== "higherEducationImage") {
               if (typeof alumniData[key] === "object" && alumniData[key] !== null) {
                 formData.append(key, JSON.stringify(alumniData[key]))
               } else if (alumniData[key] !== null && alumniData[key] !== undefined) {
@@ -214,6 +318,10 @@ export const createAlumni = async (alumniData) => {
 
           if (alumniData.employmentImage) {
             formData.append("employmentImage", alumniData.employmentImage)
+          }
+
+          if (alumniData.higherEducationImage) {
+            formData.append("higherEducationImage", alumniData.higherEducationImage)
           }
 
           // Log FormData contents for debugging
@@ -330,7 +438,7 @@ export const updateAlumni = async (id, alumniData, token) => {
     if (isBackendAvailable) {
       // Backend is available, use real API
       // Handle file uploads if present
-      if (alumniData.basicInfoImage || alumniData.qualificationImage || alumniData.employmentImage) {
+      if (alumniData.basicInfoImage || alumniData.qualificationImage || alumniData.employmentImage || alumniData.higherEducationImage) {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5001/api"
 
         if (!token) {
@@ -345,7 +453,7 @@ export const updateAlumni = async (id, alumniData, token) => {
 
         // Add all regular fields to formData
         Object.keys(alumniData).forEach((key) => {
-          if (key !== "basicInfoImage" && key !== "qualificationImage" && key !== "employmentImage") {
+          if (key !== "basicInfoImage" && key !== "qualificationImage" && key !== "employmentImage" && key !== "higherEducationImage") {
             if (typeof alumniData[key] === "object" && alumniData[key] !== null) {
               formData.append(key, JSON.stringify(alumniData[key]))
             } else if (alumniData[key] !== null && alumniData[key] !== undefined) {
@@ -365,6 +473,10 @@ export const updateAlumni = async (id, alumniData, token) => {
 
         if (alumniData.employmentImage) {
           formData.append("employmentImage", alumniData.employmentImage)
+        }
+
+        if (alumniData.higherEducationImage) {
+          formData.append("higherEducationImage", alumniData.higherEducationImage)
         }
 
         // Use direct axios call with FormData

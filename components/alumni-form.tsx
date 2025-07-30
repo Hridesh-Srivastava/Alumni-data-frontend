@@ -55,6 +55,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     basicInfoImage: null,
     qualificationImage: null,
     employmentImage: null,
+    higherEducationImage: null,
   })
 
   // Fetch alumni data when in edit mode
@@ -101,9 +102,11 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
             basicInfoImage: null,
             qualificationImage: null,
             employmentImage: null,
+            higherEducationImage: null,
           })
 
           console.log("Fetched alumni data:", processedData)
+          console.log("Employment type:", processedData.employment?.type)
         } catch (error) {
           console.error("Error fetching alumni data:", error)
           toast.error("Failed to load alumni data")
@@ -145,9 +148,11 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
           basicInfoImage: null,
           qualificationImage: null,
           employmentImage: null,
+          higherEducationImage: null,
         })
 
         console.log("Using provided initial data:", processedData)
+        console.log("Employment type:", processedData.employment?.type)
       }
     }
 
@@ -496,9 +501,9 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Employed">Employed</SelectItem>
-                  <SelectItem value="Self-Employed">Self-Employed</SelectItem>
+                  <SelectItem value="Self-employed">Self-employed</SelectItem>
                   <SelectItem value="Unemployed">Unemployed</SelectItem>
-                  <SelectItem value="Student">Student</SelectItem>
+                  <SelectItem value="Studying">Studying</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -538,7 +543,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               </div>
             )}
 
-            {formData.employment.type === "Self-Employed" && (
+            {formData.employment.type === "Self-employed" && (
               <div className="space-y-2 mt-4">
                 <Label htmlFor="employment.selfEmploymentDetails">Self-employment Details</Label>
                 <Textarea
@@ -610,21 +615,31 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
               </div>
             </div>
 
-            {formData.higherEducation.documentUrl && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Current document:
-                  <a
-                    href={formData.higherEducation.documentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 text-primary hover:underline"
-                  >
-                    View Document
-                  </a>
-                </p>
-              </div>
-            )}
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="higherEducationImage">Upload Higher Education Document (optional)</Label>
+              <Input
+                id="higherEducationImage"
+                name="higherEducationImage"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              {formData.higherEducation.documentUrl && !formData.higherEducationImage && (
+                <div className="mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Current file:
+                    <a
+                      href={formData.higherEducation.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-primary hover:underline"
+                    >
+                      View Document
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
 
             <div className="mt-6 flex justify-between">
              

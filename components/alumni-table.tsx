@@ -6,6 +6,7 @@ import { getAlumni, getAlumniById } from "@/services/alumni-service"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Pagination,
   PaginationContent,
@@ -73,6 +74,7 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
     totalPages: 1,
     total: 0,
   })
+  const [pageSize, setPageSize] = useState(10)
 
   // Pass total count to parent component whenever it changes
   useEffect(() => {
@@ -92,7 +94,7 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
         // Build filter object
         const filterParams: any = {
           page: pagination.currentPage,
-          limit: 10,
+          limit: pageSize,
         }
 
         if (filter.academicUnit && filter.academicUnit !== "all" && filter.academicUnit !== "") {
@@ -173,7 +175,7 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
     if (isAuthenticated) {
       fetchAlumni()
     }
-  }, [token, filter, pagination.currentPage, isAuthenticated])
+  }, [token, filter, pagination.currentPage, isAuthenticated, pageSize])
 
   // Clear selections when data changes
   useEffect(() => {
@@ -437,52 +439,80 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
         </Table>
       </div>
 
-      {pagination.totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (pagination.currentPage > 1) {
-                    handlePageChange(pagination.currentPage - 1)
-                  }
-                }}
-                className={pagination.currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-              <PaginationItem key={page}>
-                <PaginationLink
+      {/* Page size selector and pagination */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-muted-foreground">Show</span>
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => {
+              setPageSize(Number(value))
+              setPagination({ ...pagination, currentPage: 1 }) // Reset to first page when changing page size
+            }}
+          >
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-muted-foreground">per page</span>
+          <span className="text-sm text-muted-foreground">
+            Showing {((pagination.currentPage - 1) * pageSize) + 1} to {Math.min(pagination.currentPage * pageSize, pagination.total)} of {pagination.total} records
+          </span>
+        </div>
+        
+        {pagination.totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
                   href="#"
                   onClick={(e) => {
                     e.preventDefault()
-                    handlePageChange(page)
+                    if (pagination.currentPage > 1) {
+                      handlePageChange(pagination.currentPage - 1)
+                    }
                   }}
-                  isActive={page === pagination.currentPage}
-                >
-                  {page}
-                </PaginationLink>
+                  className={pagination.currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                />
               </PaginationItem>
-            ))}
 
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (pagination.currentPage < pagination.totalPages) {
-                    handlePageChange(pagination.currentPage + 1)
-                  }
-                }}
-                className={pagination.currentPage >= pagination.totalPages ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePageChange(page)
+                    }}
+                    isActive={page === pagination.currentPage}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.currentPage < pagination.totalPages) {
+                      handlePageChange(pagination.currentPage + 1)
+                    }
+                  }}
+                  className={pagination.currentPage >= pagination.totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </div>
     </div>
   )
 }
