@@ -35,6 +35,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithOAuth: (userData: User, token: string) => void
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
   updateProfile: (userData: any) => Promise<void>
@@ -48,6 +49,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
   login: async () => {},
+  loginWithOAuth: () => {},
   register: async () => {},
   logout: () => {},
   updateProfile: async () => {},
@@ -373,6 +375,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }
 
+  const loginWithOAuth = (userData: User, authToken: string) => {
+    // Update AuthContext state directly for OAuth users
+    setUser(userData)
+    setToken(authToken)
+    
+    // Store in localStorage
+    localStorage.setItem("user", JSON.stringify(userData))
+    localStorage.setItem("token", authToken)
+    
+    // Set cookie for middleware
+    document.cookie = `token=${authToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${
+      process.env.NODE_ENV === "production" ? "; Secure" : ""
+    }`
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -381,6 +398,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isAuthenticated: !!user,
         loading,
         login,
+        loginWithOAuth,
         register,
         logout,
         updateProfile,

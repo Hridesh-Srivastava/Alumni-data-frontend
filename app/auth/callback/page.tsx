@@ -12,7 +12,7 @@ function AuthCallbackContent() {
   const [message, setMessage] = useState("Processing authentication...")
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login } = useAuth()
+  const { loginWithOAuth } = useAuth()
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -44,14 +44,8 @@ function AuthCallbackContent() {
         // Parse user data
         const userData = JSON.parse(decodeURIComponent(userParam))
 
-        // Store authentication data
-        localStorage.setItem("token", token)
-        localStorage.setItem("user", JSON.stringify(userData))
-
-        // Set cookie for middleware
-        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict${
-          process.env.NODE_ENV === "production" ? "; Secure" : ""
-        }`
+        // Update AuthContext state directly using the new OAuth function
+        loginWithOAuth(userData, token)
 
         setStatus("success")
         setMessage("Authentication successful! Redirecting to dashboard...")
