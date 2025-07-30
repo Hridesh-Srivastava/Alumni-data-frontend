@@ -76,6 +76,7 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
     total: 0,
   })
   const [pageSize, setPageSize] = useState(10)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Pass total count to parent component whenever it changes
   useEffect(() => {
@@ -176,7 +177,7 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
     if (isAuthenticated) {
       fetchAlumni()
     }
-  }, [token, filter, pagination.currentPage, isAuthenticated, pageSize])
+  }, [token, filter, pagination.currentPage, isAuthenticated, pageSize, refreshTrigger])
 
   // Clear selections when data changes
   useEffect(() => {
@@ -323,12 +324,8 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
       await deleteAlumni(alumniId, token)
       toast.success("Alumni deleted successfully")
       
-      // Refresh the data
-      const currentPage = pagination.currentPage
-      setPagination({ ...pagination, currentPage: 1 })
-      setTimeout(() => {
-        setPagination({ ...pagination, currentPage })
-      }, 100)
+      // Refresh the data by triggering a re-fetch
+      setRefreshTrigger(prev => prev + 1)
     } catch (error: any) {
       console.error("Error deleting alumni:", error)
       toast.error(error.message || "Failed to delete alumni")
@@ -354,12 +351,8 @@ export function AlumniTable({ filter, onTotalChange }: AlumniTableProps) {
       // Clear selections
       setSelectedAlumni(new Set())
       
-      // Refresh the data
-      const currentPage = pagination.currentPage
-      setPagination({ ...pagination, currentPage: 1 })
-      setTimeout(() => {
-        setPagination({ ...pagination, currentPage })
-      }, 100)
+      // Refresh the data by triggering a re-fetch
+      setRefreshTrigger(prev => prev + 1)
     } catch (error: any) {
       console.error("Bulk delete error:", error)
       toast.error(error.message || "Failed to delete alumni")
