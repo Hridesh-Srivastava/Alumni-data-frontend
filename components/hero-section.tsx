@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Typed from "typed.js"
 import Link from "next/link"
 import { motion, useScroll, useTransform } from "framer-motion"
 import CountUp from "react-countup"
@@ -18,6 +19,26 @@ export function HeroSection() {
 
   const y = useTransform(scrollYProgress, [0, 1], [0, 200])
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
+
+  // typed.js ref
+  const typedRef = useRef<HTMLSpanElement | null>(null)
+
+  useEffect(() => {
+    if (!typedRef.current) return
+    const typed = new Typed(typedRef.current, {
+      strings: ["SST Alumni Data Collection"],
+      typeSpeed: 90, 
+      backSpeed: 50,
+      backDelay: 1500,
+      loop: true,
+      smartBackspace: true,
+      showCursor: true,
+      cursorChar: "|",
+    })
+    return () => {
+      typed.destroy()
+    }
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -246,9 +267,7 @@ export function HeroSection() {
               }}
             >
               <span className="relative">
-                <span className="relative z-10 bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
-                  SST Alumni Data Collection
-                </span>
+                <span className="relative z-10 bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent" ref={typedRef} />
                 <motion.span
                   className="absolute -inset-1 z-0 block rounded-lg bg-primary/20 blur-2xl"
                   animate={{
