@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect, useRef } from "react";
+import Typed from "typed.js";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import {
@@ -441,6 +442,7 @@ export default function AboutPage() {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [email, setEmail] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(true);
+  const aboutTypedRef = useRef<HTMLAnchorElement | null>(null);
   const { toast } = useToast();
   const isMobile = useMobile();
 
@@ -483,6 +485,22 @@ export default function AboutPage() {
     }, 5000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  // initialize typed 
+  useEffect(() => {
+    if (!aboutTypedRef.current) return;
+    const typed = new Typed(aboutTypedRef.current, {
+      strings: ["About School of Science and Technology"],
+      typeSpeed: 70,
+      backSpeed: 40,
+      backDelay: 1500,
+      loop: true,
+      smartBackspace: true,
+      showCursor: true,
+      cursorChar: "|",
+    });
+    return () => typed.destroy();
   }, []);
 
   // Email validation
@@ -550,14 +568,12 @@ export default function AboutPage() {
                 </div>
                 <h1 className="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                   <a
+                    ref={aboutTypedRef}
                     href="https://srhu.edu.in/school-of-science-technology/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-primary text-blue-800 hover:text-gray-500"
-                  >
-                    About School of Science and Technology
-                    
-                  </a>
+                  />
                 </h1>
                 <p className="mt-6 text-muted-foreground text-lg leading-relaxed">
                   The School of Science and Technology (SST) under Swami Rama

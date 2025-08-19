@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useEffect } from "react"
+import Typed from "typed.js"
 import { motion, useInView } from "framer-motion"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -9,12 +10,29 @@ import { MapPin, Phone, Mail, Clock, MessageCircle, Users, Globe, Sparkles } fro
 
 export default function ContactPage() {
   const heroRef = useRef(null)
+  const contactTypedRef = useRef<HTMLSpanElement | null>(null)
   const formRef = useRef(null)
   const mapRef = useRef(null)
 
   const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 })
   const isFormInView = useInView(formRef, { once: true, amount: 0.3 })
   const isMapInView = useInView(mapRef, { once: true, amount: 0.3 })
+
+  // typed.js init
+  useEffect(() => {
+    if (!contactTypedRef.current) return
+    const typed = new Typed(contactTypedRef.current, {
+      strings: ["Contact Us"],
+      typeSpeed: 70,
+      backSpeed: 40,
+      backDelay: 1500,
+      loop: true,
+      smartBackspace: true,
+      showCursor: true,
+      cursorChar: "|",
+    })
+    return () => typed.destroy()
+  }, [])
 
   const contactInfo = [
     {
@@ -162,9 +180,7 @@ export default function ContactPage() {
                 }}
               >
                 <span className="relative">
-                  <span className="bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
-                    Contact Us
-                  </span>
+                  <span ref={contactTypedRef} className="bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent" />
                   <motion.span
                     className="absolute -inset-1 block rounded-lg bg-primary/20 blur-2xl"
                     animate={{
