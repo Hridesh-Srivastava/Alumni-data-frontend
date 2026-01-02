@@ -49,53 +49,20 @@ const saveAcademicUnitsToLocalStorage = (units: any[]) => {
 
 export const getAcademicUnits = async () => {
   try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      const response = await api.get("/academic-units")
-
-      // Also store in localStorage for development convenience
-      saveAcademicUnitsToLocalStorage(response.data)
-
-      return response.data
-    } else {
-      // Backend is not available, use mock data
-      console.log("Backend unavailable: Using mock academic units")
-
-      return getStoredAcademicUnits()
-    }
+    // Always fetch from backend API (user-specific data)
+    const response = await api.get("/academic-units")
+    return response.data
   } catch (error) {
     console.error("Error fetching academic units:", error)
-
-    // Return from localStorage as fallback
-    return getStoredAcademicUnits()
+    throw error // Throw error to handle it in the component
   }
 }
 
 export const getAcademicUnitById = async (id: string) => {
   try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API
-      const response = await api.get(`/academic-units/${id}`)
-      return response.data
-    } else {
-      // Backend is not available, use mock data
-      console.log("Backend unavailable: Using mock academic unit")
-
-      const mockUnits = getStoredAcademicUnits()
-      const unit = mockUnits.find((u) => u._id === id)
-
-      if (!unit) {
-        throw new Error("Academic unit not found")
-      }
-
-      return unit
-    }
+    // Always fetch from backend API (user-specific data)
+    const response = await api.get(`/academic-units/${id}`)
+    return response.data
   } catch (error) {
     console.error("Error fetching academic unit:", error)
     throw error

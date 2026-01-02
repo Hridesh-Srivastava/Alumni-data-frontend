@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createAlumni } from "@/services/alumni-service"
+import { getAcademicUnits } from "@/services/academic-unit-service"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
@@ -23,6 +24,7 @@ const alumniFormSchema = z.object({
   // Basic Information
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   program: z.string().min(1, { message: "Program is required." }),
+  academicUnit: z.string().min(1, { message: "Academic Unit is required." }),
   passingYear: z.string().min(1, { message: "Passing year is required." }),
   registrationNumber: z.string().min(1, { message: "Registration number is required." }),
 
@@ -61,6 +63,7 @@ export default function NewAlumniPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentStep, setCurrentStep] = useState(1)
+  const [academicUnits, setAcademicUnits] = useState<any[]>([])
   const router = useRouter()
 
   // State for file uploads
@@ -69,12 +72,27 @@ export default function NewAlumniPage() {
   const [employmentImage, setEmploymentImage] = useState<File | null>(null)
   const [higherEducationImage, setHigherEducationImage] = useState<File | null>(null)
 
+  // Fetch academic units on component mount
+  useEffect(() => {
+    const fetchAcademicUnits = async () => {
+      try {
+        const units = await getAcademicUnits()
+        setAcademicUnits(units)
+      } catch (error) {
+        console.error("Error fetching academic units:", error)
+        toast.error("Failed to load academic units")
+      }
+    }
+    fetchAcademicUnits()
+  }, [])
+
   // Define form with default values
   const form = useForm<AlumniFormValues>({
     resolver: zodResolver(alumniFormSchema),
     defaultValues: {
       name: "",
       program: "",
+      academicUnit: "",
       passingYear: "",
       registrationNumber: "",
       contactDetails: {
@@ -126,7 +144,6 @@ export default function NewAlumniPage() {
         qualificationImage,
         employmentImage,
         higherEducationImage,
-        academicUnit: "School of Science and Technology", // Always set to SST
       }
 
       console.log("Form data prepared:", formData)
@@ -276,6 +293,34 @@ export default function NewAlumniPage() {
                         <FormControl>
                           <Input placeholder="e.g. BCA, B.Tech, BSc." {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="academicUnit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Academic Unit*</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select academic unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {academicUnits.map((unit) => (
+                              <SelectItem key={unit._id} value={unit.name}>
+                                {unit.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {academicUnits.length === 0 && "No academic units found. Please create one first."}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

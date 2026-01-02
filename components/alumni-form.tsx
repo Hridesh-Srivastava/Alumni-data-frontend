@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { createAlumni, updateAlumni, getAlumniById } from "@/services/alumni-service"
+import { getAcademicUnits } from "@/services/academic-unit-service"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,11 +24,14 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [activeSection, setActiveSection] = useState("basic-info")
+  const [academicUnits, setAcademicUnits] = useState<any[]>([])
+  const [loadingUnits, setLoadingUnits] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
     registrationNumber: "",
     program: "",
     passingYear: "",
+    academicUnit: "",
     contactDetails: {
       email: "",
       phone: "",
@@ -57,6 +61,24 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     employmentImage: null,
     higherEducationImage: null,
   })
+
+  // Fetch academic units on component mount
+  useEffect(() => {
+    const fetchAcademicUnits = async () => {
+      try {
+        setLoadingUnits(true)
+        const units = await getAcademicUnits()
+        setAcademicUnits(units)
+      } catch (error) {
+        console.error("Error fetching academic units:", error)
+        toast.error("Failed to load academic units")
+      } finally {
+        setLoadingUnits(false)
+      }
+    }
+
+    fetchAcademicUnits()
+  }, [])
 
   // Fetch alumni data when in edit mode
   useEffect(() => {
@@ -213,7 +235,7 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
     e.preventDefault()
 
     // Validate required fields
-    if (!formData.name || !formData.registrationNumber || !formData.program || !formData.passingYear) {
+    if (!formData.name || !formData.registrationNumber || !formData.program || !formData.passingYear || !formData.academicUnit) {
       toast.error("Please fill in all required fields")
       setActiveSection("basic-info")
       return
@@ -339,6 +361,36 @@ export function AlumniForm({ initialData, isEditing = false, alumniId }: AlumniF
                 </Label>
                 <Input id="program" name="program" value={formData.program} onChange={handleChange} required />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="academicUnit">
+                  Academic Unit <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.academicUnit}
+                  onValueChange={(value) => handleSelectChange(value, "academicUnit")}
+                  disabled={loadingUnits}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingUnits ? "Loading..." : "Select academic unit"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicUnits.length === 0 && !loadingUnits ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No academic units found. Please create one first.
+                      </div>
+                    ) : (
+                      academicUnits.map((unit) => (
+                        <SelectItem key={unit._id} value={unit.name}>
+                          {unit.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="passingYear">
                   Passing Year <span className="text-red-500">*</span>

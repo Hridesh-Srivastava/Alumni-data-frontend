@@ -139,28 +139,13 @@ export const getAlumni = async (filter: AlumniFilter = {}) => {
 // Function to fetch all available academic units
 export const getAcademicUnits = async () => {
   try {
-    // Check if backend is available
-    const isBackendAvailable = await checkBackendStatus()
-
-    if (isBackendAvailable) {
-      // Backend is available, use real API - use the academic units endpoint
-      const response = await api.get("/academic-units")
-      // Extract just the names from the academic units
-      return response.data.map((unit: any) => unit.name) || []
-    } else {
-      // Backend is not available, use mock data
-      console.log("Backend unavailable: Using mock academic units")
-      const mockAlumni = getStoredAlumni()
-      
-      // Get unique academic units from mock data
-      const academicUnits = [...new Set(mockAlumni.map(alumni => alumni.academicUnit))]
-      return academicUnits.sort()
-    }
+    // Always fetch from backend API (user-specific academic units)
+    const response = await api.get("/academic-units")
+    // Extract just the names from the academic units
+    return response.data.map((unit: any) => unit.name) || []
   } catch (error) {
     console.error("Error fetching academic units:", error)
-    
-    // Fallback to default units
-    return ["School of Science and Technology"]
+    throw error
   }
 }
 
@@ -259,9 +244,6 @@ export const getAlumniById = async (id, token) => {
 // Function to create a new alumni
 export const createAlumni = async (alumniData) => {
   try {
-    // Always set academicUnit to SST
-    alumniData.academicUnit = "School of Science and Technology"
-
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
 
@@ -400,7 +382,6 @@ function createAlumniInLocalStorage(alumniData) {
   const newAlumni = {
     _id: Math.random().toString(36).substring(2, 9),
     ...alumniData,
-    academicUnit: "School of Science and Technology", // Always set to SST
     createdAt: new Date().toISOString(),
   }
 
@@ -417,7 +398,6 @@ function addAlumniToLocalStorage(alumniData) {
     const mockAlumni = getStoredAlumni()
     mockAlumni.push({
       ...alumniData,
-      academicUnit: "School of Science and Technology", // Always set to SST
       createdAt: alumniData.createdAt || new Date().toISOString(),
     })
     saveAlumniToLocalStorage(mockAlumni)
@@ -429,9 +409,6 @@ function addAlumniToLocalStorage(alumniData) {
 // Function to update an existing alumni
 export const updateAlumni = async (id, alumniData, token) => {
   try {
-    // Always set academicUnit to SST
-    alumniData.academicUnit = "School of Science and Technology"
-
     // Check if backend is available
     const isBackendAvailable = await checkBackendStatus()
 
@@ -499,7 +476,6 @@ export const updateAlumni = async (id, alumniData, token) => {
           mockAlumni[index] = {
             ...mockAlumni[index],
             ...response.data,
-            academicUnit: "School of Science and Technology", // Always set to SST
             updatedAt: new Date().toISOString(),
           }
           saveAlumniToLocalStorage(mockAlumni)
@@ -518,7 +494,6 @@ export const updateAlumni = async (id, alumniData, token) => {
           mockAlumni[index] = {
             ...mockAlumni[index],
             ...response.data,
-            academicUnit: "School of Science and Technology", // Always set to SST
             updatedAt: new Date().toISOString(),
           }
           saveAlumniToLocalStorage(mockAlumni)
@@ -549,7 +524,6 @@ export const updateAlumni = async (id, alumniData, token) => {
       const updatedAlumni = {
         ...mockAlumni[index],
         ...alumniData,
-        academicUnit: "School of Science and Technology", // Always set to SST
         updatedAt: new Date().toISOString(),
       }
 
@@ -821,15 +795,20 @@ export const getStats = async (token) => {
 
       const mockAlumni = getStoredAlumni()
 
-      // Filter for SST engineering department
-      const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
+      // Calculate stats from ALL alumni (don't filter by academic unit)
+      const totalAlumni = mockAlumni.length
 
-      // Calculate real stats based on mock data
-      const totalAlumni = filteredAlumni.length
+      // Count by academic unit
+      const byAcademicUnit = {}
+      mockAlumni.forEach((alumni) => {
+        if (alumni.academicUnit) {
+          byAcademicUnit[alumni.academicUnit] = (byAcademicUnit[alumni.academicUnit] || 0) + 1
+        }
+      })
 
       // Count by passing year
       const byPassingYear = {}
-      filteredAlumni.forEach((alumni) => {
+      mockAlumni.forEach((alumni) => {
         if (alumni.passingYear) {
           byPassingYear[alumni.passingYear] = (byPassingYear[alumni.passingYear] || 0) + 1
         }
@@ -837,7 +816,7 @@ export const getStats = async (token) => {
 
       // Count employment status
       let employedCount = 0
-      filteredAlumni.forEach((alumni) => {
+      mockAlumni.forEach((alumni) => {
         if (alumni.employment && alumni.employment.type === "Employed") {
           employedCount++
         }
@@ -846,7 +825,7 @@ export const getStats = async (token) => {
 
       // Count higher education
       let higherEducationCount = 0
-      filteredAlumni.forEach((alumni) => {
+      mockAlumni.forEach((alumni) => {
         if (alumni.higherEducation && alumni.higherEducation.institutionName) {
           higherEducationCount++
         }
@@ -855,9 +834,7 @@ export const getStats = async (token) => {
 
       return {
         totalAlumni,
-        byAcademicUnit: {
-          "School of Science and Technology": totalAlumni,
-        },
+        byAcademicUnit,
         byPassingYear,
         employmentRate,
         higherEducationRate,
@@ -866,18 +843,29 @@ export const getStats = async (token) => {
   } catch (error) {
     console.error("Error fetching statistics:", error)
 
-    // Generate basic stats as fallback
+    // Generate stats from localStorage as fallback
     const mockAlumni = getStoredAlumni()
 
-    // Filter for SST engineering department
-    const filteredAlumni = mockAlumni.filter((a) => a.academicUnit === "School of Science and Technology")
+    // Count by academic unit
+    const byAcademicUnit = {}
+    mockAlumni.forEach((alumni) => {
+      if (alumni.academicUnit) {
+        byAcademicUnit[alumni.academicUnit] = (byAcademicUnit[alumni.academicUnit] || 0) + 1
+      }
+    })
+
+    // Count by passing year
+    const byPassingYear = {}
+    mockAlumni.forEach((alumni) => {
+      if (alumni.passingYear) {
+        byPassingYear[alumni.passingYear] = (byPassingYear[alumni.passingYear] || 0) + 1
+      }
+    })
 
     return {
-      totalAlumni: filteredAlumni.length,
-      byAcademicUnit: {
-        "School of Science and Technology": filteredAlumni.length,
-      },
-      byPassingYear: {},
+      totalAlumni: mockAlumni.length,
+      byAcademicUnit,
+      byPassingYear,
       employmentRate: 0,
       higherEducationRate: 0,
     }

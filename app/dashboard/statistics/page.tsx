@@ -33,7 +33,9 @@ export default function StatisticsPage() {
     const fetchStats = async () => {
       try {
         if (token) {
+          console.log("Fetching stats with token...")
           const data = await getStats(token)
+          console.log("Stats data received:", data)
           setStats(data)
         }
       } catch (error) {
@@ -73,20 +75,24 @@ export default function StatisticsPage() {
   }
 
   const formatAcademicUnitName = (name: string) => {
-    if (name.includes("School")) return "SST"
-    if (name.includes("Malayan")) return "MSS"
-    return name.length > 10 ? `${name.substring(0, 8)}...` : name
+    // Don't truncate - let Recharts handle it responsively
+    return name
   }
 
   const academicUnitData = stats?.byAcademicUnit
     ? Object.entries(stats.byAcademicUnit).map(([name, value]) => ({
-        name: formatAcademicUnitName(name),
-        fullName: name,
+        name: name, // Full name for display
+        shortName: name.length > 15 ? `${name.substring(0, 12)}...` : name, // Short name for labels
         value
       }))
     : []
 
+  console.log("Academic Unit Data for charts:", academicUnitData)
+  console.log("Raw stats.byAcademicUnit:", stats?.byAcademicUnit)
+
   const passingYearData = processPassingYearData(stats?.byPassingYear)
+  console.log("Passing Year Data for charts:", passingYearData)
+  console.log("Raw stats.byPassingYear:", stats?.byPassingYear)
   const employmentData = stats
     ? [
         { name: "Employed", value: stats?.employmentRate || 0 },
@@ -145,33 +151,46 @@ export default function StatisticsPage() {
               <CardDescription>Distribution across academic units</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={academicUnitData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={isMobile ? 80 : 100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name }) => name}
-                  >
-                    {academicUnitData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value, _, props) => [
-                      `${value} alumni`,
-                      props.payload.fullName
-                    ]}
-                  />
-                  <Legend 
-                    layout={isMobile ? "vertical" : "horizontal"} 
-                    verticalAlign="bottom"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {academicUnitData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm mt-2">Create some alumni records to see statistics</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={academicUnitData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={isMobile ? 80 : 100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={false}
+                      labelLine={false}
+                    >
+                      {academicUnitData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, _, props) => [
+                        `${value} alumni`,
+                        props.payload.name
+                      ]}
+                    />
+                    <Legend 
+                      layout={isMobile ? "vertical" : "horizontal"} 
+                      verticalAlign="bottom"
+                      wrapperStyle={{ paddingTop: '10px' }}
+                      formatter={(value, entry) => {
+                        const name = entry.payload.name
+                        return name.length > 25 ? `${name.substring(0, 22)}...` : name
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -182,53 +201,60 @@ export default function StatisticsPage() {
               <CardDescription>Number graduating each year</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px] relative">
-              <div className="absolute inset-0 overflow-x-auto pb-4">
-                <div 
-                  className="h-full" 
-                  style={{ 
-                    minWidth: `${Math.max(passingYearData.length * 40, 600)}px`,
-                    paddingRight: '20px'
-                  }}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={passingYearData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: isMobile ? 100 : 70,
-                      }}
-                      barCategoryGap={10}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="year"
-                        angle={isMobile ? -90 : -45}
-                        textAnchor="end"
-                        height={isMobile ? 100 : 70}
-                        tick={{ fontSize: isMobile ? 10 : 12 }}
-                        interval={0}
-                      />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar 
-                        dataKey="value" 
-                        name="Alumni Count"
-                        barSize={30}
-                        radius={[4, 4, 0, 0]}
-                      >
-                        {passingYearData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={BAR_COLORS[index % BAR_COLORS.length]} 
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+              {passingYearData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm mt-2">Create some alumni records to see statistics</p>
                 </div>
-              </div>
+              ) : (
+                <div className="absolute inset-0 overflow-x-auto pb-4">
+                  <div 
+                    className="h-full" 
+                    style={{ 
+                      minWidth: `${Math.max(passingYearData.length * 40, 600)}px`,
+                      paddingRight: '20px'
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={passingYearData}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: isMobile ? 100 : 70,
+                        }}
+                        barCategoryGap={10}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="year"
+                          angle={isMobile ? -90 : -45}
+                          textAnchor="end"
+                          height={isMobile ? 100 : 70}
+                          tick={{ fontSize: isMobile ? 10 : 12 }}
+                          interval={0}
+                        />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar 
+                          dataKey="value" 
+                          name="Alumni Count"
+                          barSize={30}
+                          radius={[4, 4, 0, 0]}
+                        >
+                          {passingYearData.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={BAR_COLORS[index % BAR_COLORS.length]} 
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -239,28 +265,35 @@ export default function StatisticsPage() {
               <CardDescription>Current employment status of alumni</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={employmentData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={isMobile ? 80 : 100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name }) => name}
-                  >
-                    {employmentData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value}%`, ""]} />
-                  <Legend 
-                    layout={isMobile ? "vertical" : "horizontal"} 
-                    verticalAlign="bottom"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {!stats || stats.totalAlumni === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm mt-2">Create some alumni records to see statistics</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={employmentData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={isMobile ? 80 : 100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name }) => name}
+                    >
+                      {employmentData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`${value}%`, ""]} />
+                    <Legend 
+                      layout={isMobile ? "vertical" : "horizontal"} 
+                      verticalAlign="bottom"
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -271,28 +304,35 @@ export default function StatisticsPage() {
               <CardDescription>Alumni pursuing higher education</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={educationData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={isMobile ? 80 : 100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name }) => name}
-                  >
-                    {educationData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={BAR_COLORS[(index + 2) % BAR_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value}%`, ""]} />
-                  <Legend 
-                    layout={isMobile ? "vertical" : "horizontal"} 
-                    verticalAlign="bottom"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {!stats || stats.totalAlumni === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm mt-2">Create some alumni records to see statistics</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={educationData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={isMobile ? 80 : 100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name }) => name}
+                    >
+                      {educationData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={BAR_COLORS[(index + 2) % BAR_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`${value}%`, ""]} />
+                    <Legend 
+                      layout={isMobile ? "vertical" : "horizontal"} 
+                      verticalAlign="bottom"
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </div>

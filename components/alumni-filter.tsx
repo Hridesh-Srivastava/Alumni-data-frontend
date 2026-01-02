@@ -39,12 +39,11 @@ export function AlumniFilter({ onFilterChange }: AlumniFilterProps) {
         setAcademicUnits(units || [])
         setPrograms(programsList || [])
         setPassingYears(yearsList || [])
-        // Don't reset academicUnit here since it's already "all"
       } catch (error) {
         console.error("Error fetching filter data:", error)
-        // Set default values on error
-        setAcademicUnits(["School of Science and Technology"])
-        setPrograms(["BCA", "B.Tech", "MCA", "M.Tech"])
+        // On error, keep empty arrays - don't set fallback data
+        setAcademicUnits([])
+        setPrograms([])
         setPassingYears([])
       } finally {
         setIsLoading(false)
